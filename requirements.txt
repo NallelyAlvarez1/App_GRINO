@@ -1,0 +1,6 @@
+streamlit
+fpdf2
+pandas
+supabase
+python-dotenv
+bcrypt
