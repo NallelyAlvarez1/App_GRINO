@@ -262,7 +262,7 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     ANCHO_INSUMO,
                     ALTO_LINEA,
                     texto_insumo,
-                    border='LT',
+                    border='L',
                     align='L'
                 )
 
@@ -273,11 +273,9 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                 pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
 
                 # 3️⃣ Otras celdas con borde normal
-                pdf.cell(25, alto_usado, item.get('unidad', '').title(), border=1, align='C')
-                pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border=1, align='C')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
-
-                # 4️⃣ Cerrar fila completa con borde L-B-R
+                pdf.cell(25, alto_usado, item.get('unidad', '').title(), border='LBR', align='C')
+                pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border='LBR', align='C')
+                pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border='LBR', align='R')
                 pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border='LBR', ln=True, align='R')
 
                 total_categoria += item.get("total", 0)
