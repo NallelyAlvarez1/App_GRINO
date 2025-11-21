@@ -248,21 +248,37 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                 ANCHO_INSUMO = 75
                 ALTO_LINEA = 6
 
-                # 1️⃣ Crear multicell del insumo (solo esta celda se expande)
-                pdf.multi_cell(ANCHO_INSUMO, ALTO_LINEA, texto_insumo, border=1)
+                texto_insumo = item.get('nombre_personalizado', '').title()
 
-                # Guardar altura generada
+                # Posición inicial
+                x_inicial = pdf.get_x()
+                y_inicial = pdf.get_y()
+
+                ANCHO_INSUMO = 75
+                ALTO_LINEA = 6
+
+                # 1️⃣ MultiCell SOLO con borde izquierdo y top
+                pdf.multi_cell(
+                    ANCHO_INSUMO,
+                    ALTO_LINEA,
+                    texto_insumo,
+                    border='LT',
+                    align='L'
+                )
+
+                # Altura generada
                 alto_usado = pdf.get_y() - y_inicial
 
-                # 2️⃣ Regresar a la derecha del multicell
+                # 2️⃣ Mover cursor al lado derecho del multicell
                 pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
 
-                # 3️⃣ Dibujar las otras celdas con exactamente ese alto
+                # 3️⃣ Otras celdas con borde normal
                 pdf.cell(25, alto_usado, item.get('unidad', '').title(), border=1, align='C')
                 pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border=1, align='C')
                 pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
 
+                # 4️⃣ Cerrar fila completa con borde L-B-R
+                pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border='LBR', ln=True, align='R')
 
                 total_categoria += item.get("total", 0)
 
