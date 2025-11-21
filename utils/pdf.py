@@ -185,8 +185,6 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                 pdf.set_y(10)
 
             # Título categoría
-            
-            # Título categoría
             pdf.set_font("helvetica", style='B', size=12)
             pdf.cell(200, 6, categoria.title(), ln=True)
 
@@ -238,16 +236,7 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     total_categoria += item.get("total", 0)
                     continue
 
-                # --- Ajuste INSUMO con auto-alto ---
-                texto_insumo = item.get('nombre_personalizado', '').title()
-
-                # Guardar posición inicial
-                x_inicial = pdf.get_x()
-                y_inicial = pdf.get_y()
-
-                ANCHO_INSUMO = 75
-                ALTO_LINEA = 6
-
+                # --- NUEVA LÓGICA PARA INSUMOS CON NOMBRES LARGOS ---
                 texto_insumo = item.get('nombre_personalizado', '').title()
 
                 # Posición inicial
@@ -256,27 +245,57 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
 
                 ANCHO_INSUMO = 75
                 ALTO_LINEA = 6
+                ALTO_MINIMO = 6
 
-                # 1️⃣ MultiCell SOLO con borde izquierdo y top
+                # Calcular cuántas líneas necesitamos
+                pdf.set_font("helvetica", size=11)
+                lineas = pdf.multi_cell(ANCHO_INSUMO, ALTO_LINEA, texto_insumo, split_only=True)
+                num_lineas = len(lineas)
+                alto_necesario = max(ALTO_MINIMO, num_lineas * ALTO_LINEA)
+
+                # Dibujar celda de insumo con el alto calculado
+                pdf.set_xy(x_inicial, y_inicial)
                 pdf.multi_cell(
                     ANCHO_INSUMO,
                     ALTO_LINEA,
                     texto_insumo,
-                    border='L',
+                    border=1,
                     align='L'
                 )
 
-                # Altura generada
-                alto_usado = pdf.get_y() - y_inicial
+                # Obtener la posición Y después del multi_cell
+                y_despues = pdf.get_y()
+                alto_real = y_despues - y_inicial
 
-                # 2️⃣ Mover cursor al lado derecho del multicell
-                pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
-
-                # 3️⃣ Otras celdas con borde normal
-                pdf.cell(25, alto_usado, item.get('unidad', '').title(), border='LBR', align='C')
-                pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border='LBR', align='C')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border='LBR', align='R')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border='LBR', ln=True, align='R')
+                # Si el texto ocupó más de una línea, ajustar el alto
+                if alto_real > ALTO_LINEA:
+                    # Volver a la posición inicial y redibujar con bordes correctos
+                    pdf.set_xy(x_inicial, y_inicial)
+                    
+                    # Celda de insumo con borde completo
+                    pdf.multi_cell(
+                        ANCHO_INSUMO,
+                        ALTO_LINEA,
+                        texto_insumo,
+                        border=1,
+                        align='L'
+                    )
+                    
+                    # Mover a la posición correcta para las otras celdas
+                    pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
+                    
+                    # Dibujar las otras celdas con el alto calculado
+                    pdf.cell(25, alto_real, item.get('unidad', '').title(), border=1, align='C')
+                    pdf.cell(20, alto_real, str(int(item.get('cantidad', 0))), border=1, align='C')
+                    pdf.cell(35, alto_real, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
+                    pdf.cell(35, alto_real, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
+                else:
+                    # Para una sola línea, usar el método normal
+                    pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
+                    pdf.cell(25, ALTO_LINEA, item.get('unidad', '').title(), border=1, align='C')
+                    pdf.cell(20, ALTO_LINEA, str(int(item.get('cantidad', 0))), border=1, align='C')
+                    pdf.cell(35, ALTO_LINEA, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
+                    pdf.cell(35, ALTO_LINEA, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
 
                 total_categoria += item.get("total", 0)
 
@@ -317,7 +336,6 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
         
     except Exception as e:
         raise Exception(f"Error al generar PDF: {str(e)}")
-
 def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], str, bool]:
     """
     Genera y devuelve los bytes de un PDF y el nombre de archivo sugerido
