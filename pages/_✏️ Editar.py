@@ -393,7 +393,107 @@ items_data = show_edited_presupuesto(user_id, is_editing=True, persist_db=False)
 st.markdown("---")
 st.markdown(f"### 💰 Total a Guardar: **${total_general_actualizado:,.0f}**")
 
-# ----- BOTÓN GUARDAR -----
 if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary", key="guardar_edicion_final"):
-    # (Dejas tu lógica actual completa)
-    st.write("Guardando…")
+    try:
+        st.toast("Guardando cambios...", icon="💾")
+        
+        # -------------------------------
+        # 1) Validar que existan datos
+        # -------------------------------
+        categorias = st.session_state.get("categorias", {})
+        if not categorias:
+            st.error("❌ No hay datos para guardar.")
+            st.stop()
+
+        cliente_id = cliente_id_actualizado
+        lugar_trabajo_id = lugar_trabajo_id_actualizado
+        descripcion = descripcion_actualizada
+
+        if not cliente_id or not lugar_trabajo_id:
+            st.error("❌ Debes seleccionar cliente y lugar de trabajo antes de guardar.")
+            st.stop()
+
+        # -------------------------------
+        # 2) Reconstruir items para guardar
+        # -------------------------------
+        items_para_guardar = []
+
+        for categoria, data in categorias.items():
+
+            # Mano de obra si existe
+            mano_obra_val = data.get("mano_obra", 0)
+            if mano_obra_val and mano_obra_val > 0:
+                items_para_guardar.append({
+                    "nombre": "Mano de Obra",
+                    "categoria": categoria,
+                    "unidad": "Unidad",
+                    "cantidad": 1,
+                    "precio_unitario": mano_obra_val,
+                    "total": mano_obra_val,
+                    "notas": "",
+                })
+
+            # Ítems normales
+            for item in data.get("items", []):
+                items_para_guardar.append({
+                    "nombre": item.get("nombre_personalizado") or item.get("nombre"),
+                    "categoria": categoria,
+                    "unidad": item.get("unidad"),
+                    "cantidad": item.get("cantidad"),
+                    "precio_unitario": item.get("precio_unitario"),
+                    "total": item.get("total"),
+                    "notas": item.get("notas", ""),
+                })
+
+        # -------------------------------
+        # 3) Calcular total general
+        # -------------------------------
+        total_general = calcular_total_edicion(categorias)
+
+        # -------------------------------
+        # 4) Guardar en la BD
+        # -------------------------------
+        nuevo_id = save_edited_presupuesto(
+            user_id=user_id,
+            cliente_id=cliente_id,
+            lugar_trabajo_id=lugar_trabajo_id,
+            descripcion=descripcion,
+            items=items_para_guardar,
+            total=total_general
+        )
+
+        if not nuevo_id:
+            st.error("❌ Ocurrió un error al guardar en la base de datos.")
+            st.stop()
+
+        # -------------------------------
+        # 5) Generar PDF
+        # -------------------------------
+        pdf_name = f"presupuesto_{nuevo_id}.pdf"
+        path_pdf = generar_pdf(
+            nombre_archivo=pdf_name,
+            cliente_nombre=cliente_nombre_actualizado,
+            lugar_trabajo=lugar_nombre_actualizado,
+            descripcion=descripcion,
+            categorias=categorias,
+            total_general=total_general
+        )
+
+        st.success(f"✅ Presupuesto guardado como nuevo (ID {nuevo_id}).")
+        st.toast("PDF generado correctamente ✔️", icon="📄")
+
+        with open(path_pdf, "rb") as pdf_file:
+            st.download_button(
+                label="📥 Descargar PDF",
+                data=pdf_file,
+                file_name=pdf_name,
+                mime="application/pdf",
+                use_container_width=True
+            )
+
+        st.page_link(HISTORIAL_PAGE, label="📚 Ir al historial", use_container_width=True)
+
+    except Exception as e:
+        st.error("❌ Error al guardar el presupuesto.")
+        st.exception(e)
+
