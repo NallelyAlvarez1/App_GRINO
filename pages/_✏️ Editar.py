@@ -427,7 +427,8 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
             lugar_trabajo_id=lugar_trabajo_id_actualizado,
             descripcion=descripcion_actualizada,
             items_data=items_data,     # ← NOMBRE CORRECTO
-            total=total_general
+            total_general=total_general
+
         )
 
         if not nuevo_id:
