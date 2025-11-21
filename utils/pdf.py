@@ -238,12 +238,31 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     total_categoria += item.get("total", 0)
                     continue
 
-                # 🟣 Caso 3: Ítem normal
-                pdf.cell(75, 6, item.get('nombre_personalizado', '').title(), border=1)
-                pdf.cell(25, 6, item.get('unidad', '').title(), border=1, align='C')
-                pdf.cell(20, 6, str(int(item.get('cantidad', 0))), border=1, align='C')
-                pdf.cell(35, 6, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
-                pdf.cell(35, 6, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
+                # --- Ajuste INSUMO con auto-alto ---
+                texto_insumo = item.get('nombre_personalizado', '').title()
+
+                # Guardar posición inicial
+                x_inicial = pdf.get_x()
+                y_inicial = pdf.get_y()
+
+                ANCHO_INSUMO = 75
+                ALTO_LINEA = 6
+
+                # 1️⃣ Crear multicell del insumo (solo esta celda se expande)
+                pdf.multi_cell(ANCHO_INSUMO, ALTO_LINEA, texto_insumo, border=1)
+
+                # Guardar altura generada
+                alto_usado = pdf.get_y() - y_inicial
+
+                # 2️⃣ Regresar a la derecha del multicell
+                pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
+
+                # 3️⃣ Dibujar las otras celdas con exactamente ese alto
+                pdf.cell(25, alto_usado, item.get('unidad', '').title(), border=1, align='C')
+                pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border=1, align='C')
+                pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
+                pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
+
 
                 total_categoria += item.get("total", 0)
 
