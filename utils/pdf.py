@@ -236,8 +236,11 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     total_categoria += item.get("total", 0)
                     continue
 
-                # --- NUEVA LÓGICA PARA INSUMOS CON NOMBRES LARGOS ---
+                # 🟠 Caso 3: Insumos regulares (ESTE ERA EL PROBLEMA)
+                # --- NUEVA LÓGICA PARA INSUMOS REGULARES ---
                 texto_insumo = item.get('nombre_personalizado', '').title()
+                if not texto_insumo:
+                    texto_insumo = item.get('nombre', '').title()  # Fallback por si no hay nombre_personalizado
 
                 # Posición inicial
                 x_inicial = pdf.get_x()
@@ -245,13 +248,11 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
 
                 ANCHO_INSUMO = 75
                 ALTO_LINEA = 6
-                ALTO_MINIMO = 6
 
                 # Calcular cuántas líneas necesitamos
-                pdf.set_font("helvetica", size=11)
                 lineas = pdf.multi_cell(ANCHO_INSUMO, ALTO_LINEA, texto_insumo, split_only=True)
                 num_lineas = len(lineas)
-                alto_necesario = max(ALTO_MINIMO, num_lineas * ALTO_LINEA)
+                alto_necesario = max(ALTO_LINEA, num_lineas * ALTO_LINEA)
 
                 # Dibujar celda de insumo con el alto calculado
                 pdf.set_xy(x_inicial, y_inicial)
@@ -267,35 +268,14 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                 y_despues = pdf.get_y()
                 alto_real = y_despues - y_inicial
 
-                # Si el texto ocupó más de una línea, ajustar el alto
-                if alto_real > ALTO_LINEA:
-                    # Volver a la posición inicial y redibujar con bordes correctos
-                    pdf.set_xy(x_inicial, y_inicial)
-                    
-                    # Celda de insumo con borde completo
-                    pdf.multi_cell(
-                        ANCHO_INSUMO,
-                        ALTO_LINEA,
-                        texto_insumo,
-                        border=1,
-                        align='L'
-                    )
-                    
-                    # Mover a la posición correcta para las otras celdas
-                    pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
-                    
-                    # Dibujar las otras celdas con el alto calculado
-                    pdf.cell(25, alto_real, item.get('unidad', '').title(), border=1, align='C')
-                    pdf.cell(20, alto_real, str(int(item.get('cantidad', 0))), border=1, align='C')
-                    pdf.cell(35, alto_real, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
-                    pdf.cell(35, alto_real, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
-                else:
-                    # Para una sola línea, usar el método normal
-                    pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
-                    pdf.cell(25, ALTO_LINEA, item.get('unidad', '').title(), border=1, align='C')
-                    pdf.cell(20, ALTO_LINEA, str(int(item.get('cantidad', 0))), border=1, align='C')
-                    pdf.cell(35, ALTO_LINEA, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
-                    pdf.cell(35, ALTO_LINEA, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
+                # Mover a la posición correcta para las otras celdas
+                pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
+                
+                # Dibujar las otras celdas con el alto calculado
+                pdf.cell(25, alto_real, item.get('unidad', '').title(), border=1, align='C')
+                pdf.cell(20, alto_real, str(int(item.get('cantidad', 0))), border=1, align='C')
+                pdf.cell(35, alto_real, formato_moneda(item.get('precio_unitario', 0)), border=1, align='R')
+                pdf.cell(35, alto_real, formato_moneda(item.get('total', 0)), border=1, ln=True, align='R')
 
                 total_categoria += item.get("total", 0)
 
