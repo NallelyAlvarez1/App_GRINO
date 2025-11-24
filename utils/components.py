@@ -142,6 +142,61 @@ def _selector_entidad(datos: List[Tuple[int, str]], label: str, key: str, btn_nu
 
     return entidad_id
 # ==================== SECCIÓN CLIENTE - LUGAR DE TRABAJO ====================
+def show_cliente_lugar_selector(user_id: str) -> Tuple[Optional[int], str, Optional[int], str, str]:
+    """Selector simplificado de cliente y lugar de trabajo"""
+    
+    if not user_id:
+        st.error("❌ El ID de usuario no fue proporcionado al componente.")
+        return None, "", None, "", ""
+    
+    try:
+        clientes = get_clientes(user_id)
+        lugares = get_lugares_trabajo(user_id)
+    except Exception as e:
+        st.error(f"❌ Error cargando datos de entidades: {e}")
+        return None, "", None, "", ""
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("#### 👤 Cliente")
+        cliente_id = _selector_entidad(
+            datos=clientes,
+            label="cliente",
+            key="cliente",
+            btn_nuevo="➕ Nuevo cliente",
+            modal_title="Nuevo Cliente",
+            placeholder_nombre="Nombre de cliente",
+            funcion_creacion=create_cliente,
+            user_id=user_id  # ← Asegúrate de incluir esto
+        )
+        
+    with col2:
+        st.markdown("#### 📍 Lugar de Trabajo")
+        lugar_trabajo_id = _selector_entidad(
+            datos=lugares,
+            label="lugar",
+            key="lugar",
+            btn_nuevo="➕ Nuevo lugar",
+            modal_title="Nuevo Lugar de Trabajo",
+            placeholder_nombre="Nombre del lugar",
+            funcion_creacion=create_lugar_trabajo,
+            user_id=user_id  # ← Asegúrate de incluir esto
+        )
+        
+    with col3:
+        st.markdown("#### 📝 Descripción")
+        descripcion = st.text_area("Trabajo a realizar", 
+                                   placeholder="Breve descripción del trabajo a realizar", 
+                                   key="presupuesto_descripcion",
+                                   label_visibility="collapsed",
+                                   height=80)
+
+    # Obtener nombres para el resumen o visualización
+    cliente_nombre = next((n for i, n in clientes if i == cliente_id), "(No Seleccionado)")
+    lugar_nombre = next((n for i, n in lugares if i == lugar_trabajo_id), "(No Seleccionado)")
+    
+    return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
 
 def show_cliente_lugar_selector_edicion(user_id: str, cliente_inicial_id: int = None, 
                                       lugar_inicial_id: int = None, descripcion_inicial: str = ""):
@@ -238,103 +293,6 @@ def show_cliente_lugar_selector_edicion(user_id: str, cliente_inicial_id: int = 
     lugar_nombre_actual = lugar_seleccionado_nombre if lugar_seleccionado_nombre != "Seleccionar lugar" else ""
     
     return cliente_id_actual, cliente_nombre_actual, lugar_id_actual, lugar_nombre_actual, descripcion_actual
-
-def show_cliente_lugar_selector_edicion(
-    user_id: str,
-    cliente_inicial_id: int,
-    lugar_inicial_id: int,
-    descripcion_inicial: str
-):
-    """Selector de cliente/lugar/descripcion adaptado para edición de presupuestos."""
-
-    try:
-        clientes = get_clientes(user_id)
-        lugares = get_lugares_trabajo(user_id)
-    except Exception as e:
-        st.error(f"❌ Error cargando datos de entidades: {e}")
-        return None, "", None, "", ""
-
-    # Obtener nombres iniciales
-    cliente_inicial_nombre = next((n for i, n in clientes if i == cliente_inicial_id), "")
-    lugar_inicial_nombre = next((n for i, n in lugares if i == lugar_inicial_id), "")
-
-    col1, col2, col3 = st.columns(3)
-
-    # ---------------- CLIENTE ----------------
-    with col1:
-        st.markdown("#### 👤 Cliente")
-
-        opciones_clientes = [n for i, n in clientes]
-        # asegurar que el inicial exista en lista
-        idx_cliente = opciones_clientes.index(cliente_inicial_nombre) if cliente_inicial_nombre in opciones_clientes else 0
-
-        cliente_nombre_sel = st.selectbox(
-            "Cliente",
-            options=opciones_clientes,
-            index=idx_cliente,
-            key="edit_cliente_selector",
-            label_visibility="collapsed"
-        )
-
-        cliente_id = next((i for i, n in clientes if n == cliente_nombre_sel), cliente_inicial_id)
-
-        # Botón para nuevo cliente
-        if st.button("➕ Nuevo cliente", key="btn_new_cliente"):
-            with st.modal("Nuevo Cliente"):
-                nuevo = st.text_input("Nombre del cliente", key="nuevo_cliente_nombre")
-                if st.button("Guardar", key="guardar_cliente_nuevo"):
-                    created = create_cliente(user_id, nuevo)
-                    if created:
-                        st.success("Cliente creado")
-                        st.rerun()
-
-    # ---------------- LUGAR ----------------
-    with col2:
-        st.markdown("#### 📍 Lugar de Trabajo")
-
-        opciones_lugares = [n for i, n in lugares]
-        idx_lugar = opciones_lugares.index(lugar_inicial_nombre) if lugar_inicial_nombre in opciones_lugares else 0
-
-        lugar_nombre_sel = st.selectbox(
-            "Lugar",
-            options=opciones_lugares,
-            index=idx_lugar,
-            key="edit_lugar_selector",
-            label_visibility="collapsed"
-        )
-
-        lugar_id = next((i for i, n in lugares if n == lugar_nombre_sel), lugar_inicial_id)
-
-        # Botón para nuevo lugar
-        if st.button("➕ Nuevo lugar", key="btn_new_lugar"):
-            with st.modal("Nuevo Lugar de Trabajo"):
-                nuevo = st.text_input("Nombre del lugar", key="nuevo_lugar_nombre")
-                if st.button("Guardar", key="guardar_lugar_nuevo"):
-                    created = create_lugar_trabajo(user_id, nuevo)
-                    if created:
-                        st.success("Lugar creado")
-                        st.rerun()
-
-    # ---------------- DESCRIPCIÓN ----------------
-    with col3:
-        st.markdown("#### 📝 Descripción")
-        descripcion = st.text_area(
-            "Trabajo a realizar",
-            value=descripcion_inicial,
-            key="edit_descripcion_area",
-            label_visibility="collapsed",
-            height=80
-        )
-
-    return (
-        cliente_id,
-        cliente_nombre_sel,
-        lugar_id,
-        lugar_nombre_sel,
-        descripcion
-    )
-
-
 # ==================== SECCIÓN ITEMS Y CATEGORÍAS ====================
 def selector_categoria(user_id: str, mostrar_label: bool = True, requerido: bool = True, key_suffix: str = "", mostrar_boton_externo: bool = False) -> Tuple[Optional[int], Optional[str], bool]:
     """
@@ -441,6 +399,7 @@ def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: b
                 st.rerun()
 
     return st.session_state['categorias']
+
 def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = False) -> Dict[str, Any]:
     """
     Editor avanzado (Opción A) - CORREGIDO
