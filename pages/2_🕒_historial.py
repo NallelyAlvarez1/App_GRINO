@@ -191,7 +191,6 @@ for i, p in enumerate(presupuestos):
         # Mostrar texto truncado si es muy largo, con tooltip completo
         if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
             col3.write(descripcion[:30] + "...")
-            col3.caption(descripcion)  # Tooltip con descripción completa
         elif descripcion and descripcion != 'Sin descripción':
             col3.write(descripcion)
         else:
