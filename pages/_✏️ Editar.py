@@ -390,19 +390,14 @@ descripcion_actual = st.session_state.get('presupuesto_descripcion', '')
 # DEBUG: Mostrar los valores actuales para verificar
 st.write(f"🔍 DEBUG - Cliente ID: {cliente_id_actual}, Lugar ID: {lugar_id_actual}, Descripción: {descripcion_actual}")
 
-# Primero obtén el presupuesto actual como diccionario
-presupuesto_actual = {
-    'cliente_id': cliente_id_actual,
-    'lugar_trabajo_id': lugar_id_actual,
-    'descripcion': descripcion_actual
-}
-
-# Luego llama a la función con el diccionario
+# Llamar a la función con parámetros individuales (versión corregida)
 cliente_id_actualizado, cliente_nombre_actualizado, \
 lugar_trabajo_id_actualizado, lugar_nombre_actualizado, \
 descripcion_actualizada = show_cliente_lugar_selector_edicion(
     user_id=user_id,
-    presupuesto_editar=presupuesto_actual  # ← Cambio aquí
+    cliente_inicial_id=cliente_id_actual,
+    lugar_inicial_id=lugar_id_actual, 
+    descripcion_inicial=descripcion_actual
 )
 
 # Actualizar los valores en session_state si cambiaron

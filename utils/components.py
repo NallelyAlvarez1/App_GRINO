@@ -198,7 +198,7 @@ def show_cliente_lugar_selector(user_id: str) -> Tuple[Optional[int], str, Optio
     
     return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
 
-def show_cliente_lugar_selector_edicion(datos: List[Tuple[int, str]], label: str, key: str, 
+def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str, 
                             btn_nuevo: str, modal_title: str, placeholder_nombre: str,
                             funcion_creacion: Callable, user_id: str, 
                             valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
@@ -256,6 +256,73 @@ def show_cliente_lugar_selector_edicion(datos: List[Tuple[int, str]], label: str
                     st.rerun()
     
     return entidad_id
+
+def show_cliente_lugar_selector_edicion(
+    user_id: str, 
+    cliente_inicial_id: Optional[int] = None,
+    lugar_inicial_id: Optional[int] = None, 
+    descripcion_inicial: str = ""
+) -> Tuple[Optional[int], str, Optional[int], str, str]:
+    """Selector de cliente y lugar de trabajo para edición con auto-relleno"""
+    
+    if not user_id:
+        st.error("❌ El ID de usuario no fue proporcionado al componente.")
+        return None, "", None, "", ""
+    
+    try:
+        clientes = get_clientes(user_id)
+        lugares = get_lugares_trabajo(user_id)
+    except Exception as e:
+        st.error(f"❌ Error cargando datos de entidades: {e}")
+        return None, "", None, "", ""
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("#### 👤 Cliente")
+        cliente_id = _selector_entidad_edicion(
+            datos=clientes,
+            label="cliente",
+            key="cliente_edicion",
+            btn_nuevo="➕ Nuevo cliente",
+            modal_title="Nuevo Cliente",
+            placeholder_nombre="Nombre de cliente",
+            funcion_creacion=create_cliente,
+            user_id=user_id,
+            valor_actual=cliente_inicial_id,
+            nombre_actual=next((n for i, n in clientes if i == cliente_inicial_id), "(No Seleccionado)")
+        )
+        
+    with col2:
+        st.markdown("#### 📍 Lugar de Trabajo")
+        lugar_trabajo_id = _selector_entidad_edicion(
+            datos=lugares,
+            label="lugar",
+            key="lugar_edicion",
+            btn_nuevo="➕ Nuevo lugar",
+            modal_title="Nuevo Lugar de Trabajo",
+            placeholder_nombre="Nombre del lugar",
+            funcion_creacion=create_lugar_trabajo,
+            user_id=user_id,
+            valor_actual=lugar_inicial_id,
+            nombre_actual=next((n for i, n in lugares if i == lugar_inicial_id), "(No Seleccionado)")
+        )
+        
+    with col3:
+        st.markdown("#### 📝 Descripción")
+        descripcion = st.text_area("Trabajo a realizar", 
+                                   placeholder="Breve descripción del trabajo a realizar", 
+                                   value=descripcion_inicial,  # Auto-relleno
+                                   key="presupuesto_descripcion_edicion",
+                                   label_visibility="collapsed",
+                                   height=80)
+
+    # Obtener nombres actualizados para el resumen
+    cliente_nombre = next((n for i, n in clientes if i == cliente_id), "(No Seleccionado)")
+    lugar_nombre = next((n for i, n in lugares if i == lugar_trabajo_id), "(No Seleccionado)")
+    
+    return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
+
 # ==================== SECCIÓN ITEMS Y CATEGORÍAS ====================
 def selector_categoria(user_id: str, mostrar_label: bool = True, requerido: bool = True, key_suffix: str = "", mostrar_boton_externo: bool = False) -> Tuple[Optional[int], Optional[str], bool]:
     """
