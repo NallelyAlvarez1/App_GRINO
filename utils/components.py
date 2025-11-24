@@ -143,61 +143,102 @@ def _selector_entidad(datos: List[Tuple[int, str]], label: str, key: str, btn_nu
     return entidad_id
 # ==================== SECCIÓN CLIENTE - LUGAR DE TRABAJO ====================
 
-def show_cliente_lugar_selector(user_id: str) -> Tuple[Optional[int], str, Optional[int], str, str]:
-    """Selector simplificado de cliente y lugar de trabajo"""
+def show_cliente_lugar_selector_edicion(user_id: str, cliente_inicial_id: int = None, 
+                                      lugar_inicial_id: int = None, descripcion_inicial: str = ""):
+    """
+    Selector de cliente y lugar para edición - CORREGIDO sin st.modal
+    """
+    import streamlit as st
+    from utils.db import get_clientes, get_lugares_trabajo, crear_cliente, crear_lugar_trabajo
     
-    if not user_id:
-        st.error("❌ El ID de usuario no fue proporcionado al componente.")
-        return None, "", None, "", ""
+    # Obtener listas actuales
+    clientes = get_clientes(user_id)
+    lugares = get_lugares_trabajo(user_id)
     
-    try:
-        clientes = get_clientes(user_id)
-        lugares = get_lugares_trabajo(user_id)
-    except Exception as e:
-        st.error(f"❌ Error cargando datos de entidades: {e}")
-        return None, "", None, "", ""
-
     col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("#### 👤 Cliente")
-        cliente_id = _selector_entidad(
-            datos=clientes,
-            label="cliente",
-            key="cliente",
-            btn_nuevo="➕ Nuevo cliente",
-            modal_title="Nuevo Cliente",
-            placeholder_nombre="Nombre de cliente",
-            funcion_creacion=create_cliente,
-            user_id=user_id  # ← Asegúrate de incluir esto
-        )
-        
-    with col2:
-        st.markdown("#### 📍 Lugar de Trabajo")
-        lugar_trabajo_id = _selector_entidad(
-            datos=lugares,
-            label="lugar",
-            key="lugar",
-            btn_nuevo="➕ Nuevo lugar",
-            modal_title="Nuevo Lugar de Trabajo",
-            placeholder_nombre="Nombre del lugar",
-            funcion_creacion=create_lugar_trabajo,
-            user_id=user_id  # ← Asegúrate de incluir esto
-        )
-        
-    with col3:
-        st.markdown("#### 📝 Descripción")
-        descripcion = st.text_area("Trabajo a realizar", 
-                                   placeholder="Breve descripción del trabajo a realizar", 
-                                   key="presupuesto_descripcion",
-                                   label_visibility="collapsed",
-                                   height=80)
-
-    # Obtener nombres para el resumen o visualización
-    cliente_nombre = next((n for i, n in clientes if i == cliente_id), "(No Seleccionado)")
-    lugar_nombre = next((n for i, n in lugares if i == lugar_trabajo_id), "(No Seleccionado)")
     
-    return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
+    with col1:
+        st.subheader("👤 Cliente")
+        
+        # Selector de cliente existente
+        cliente_opciones = ["Seleccionar cliente"] + [nombre for _, nombre in clientes]
+        cliente_ids = [None] + [id for id, _ in clientes]
+        
+        cliente_index = 0
+        if cliente_inicial_id and cliente_inicial_id in cliente_ids:
+            cliente_index = cliente_ids.index(cliente_inicial_id)
+        
+        cliente_seleccionado_nombre = st.selectbox(
+            "Cliente:",
+            options=cliente_opciones,
+            index=cliente_index,
+            key="cliente_select_edicion"
+        )
+        
+        cliente_id_actual = cliente_ids[cliente_opciones.index(cliente_seleccionado_nombre)] if cliente_seleccionado_nombre != "Seleccionar cliente" else None
+        
+        # REEMPLAZAR MODAL CON POPOVER O EXPANDER
+        with st.popover("➕ Crear nuevo cliente"):  # Cambia st.modal por st.popover
+            st.write("**Nuevo Cliente**")
+            nuevo_cliente_nombre = st.text_input("Nombre del cliente:", key="nuevo_cliente_edicion")
+            if st.button("Guardar", key="guardar_cliente_nuevo"):
+                if nuevo_cliente_nombre:
+                    created = crear_cliente(user_id, nuevo_cliente_nombre)  # Asegúrate que se llame 'crear_cliente' no 'create_cliente'
+                    if created:
+                        st.success(f"Cliente '{nuevo_cliente_nombre}' creado")
+                        st.rerun()
+                else:
+                    st.error("Ingresa un nombre para el cliente")
+    
+    with col2:
+        st.subheader("📍 Lugar de Trabajo")
+        
+        # Selector de lugar existente
+        lugar_opciones = ["Seleccionar lugar"] + [nombre for _, nombre in lugares]
+        lugar_ids = [None] + [id for id, _ in lugares]
+        
+        lugar_index = 0
+        if lugar_inicial_id and lugar_inicial_id in lugar_ids:
+            lugar_index = lugar_ids.index(lugar_inicial_id)
+        
+        lugar_seleccionado_nombre = st.selectbox(
+            "Lugar de trabajo:",
+            options=lugar_opciones,
+            index=lugar_index,
+            key="lugar_select_edicion"
+        )
+        
+        lugar_id_actual = lugar_ids[lugar_opciones.index(lugar_seleccionado_nombre)] if lugar_seleccionado_nombre != "Seleccionar lugar" else None
+        
+        # REEMPLAZAR MODAL CON POPOVER O EXPANDER
+        with st.popover("➕ Crear nuevo lugar"):  # Cambia st.modal por st.popover
+            st.write("**Nuevo Lugar de Trabajo**")
+            nuevo_lugar_nombre = st.text_input("Nombre del lugar:", key="nuevo_lugar_edicion")
+            if st.button("Guardar", key="guardar_lugar_nuevo"):
+                if nuevo_lugar_nombre:
+                    created = crear_lugar_trabajo(user_id, nuevo_lugar_nombre)
+                    if created:
+                        st.success(f"Lugar '{nuevo_lugar_nombre}' creado")
+                        st.rerun()
+                else:
+                    st.error("Ingresa un nombre para el lugar")
+    
+    with col3:
+        st.subheader("📝 Descripción")
+        descripcion_actual = st.text_area(
+            "Descripción del trabajo:",
+            value=descripcion_inicial,
+            placeholder="Describa el trabajo a realizar...",
+            key="descripcion_edicion",
+            height=100
+        )
+    
+    # Obtener nombres para retornar
+    cliente_nombre_actual = cliente_seleccionado_nombre if cliente_seleccionado_nombre != "Seleccionar cliente" else ""
+    lugar_nombre_actual = lugar_seleccionado_nombre if lugar_seleccionado_nombre != "Seleccionar lugar" else ""
+    
+    return cliente_id_actual, cliente_nombre_actual, lugar_id_actual, lugar_nombre_actual, descripcion_actual
+
 def show_cliente_lugar_selector_edicion(
     user_id: str,
     cliente_inicial_id: int,
