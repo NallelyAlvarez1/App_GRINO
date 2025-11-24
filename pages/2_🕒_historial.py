@@ -238,7 +238,7 @@ for i, p in enumerate(presupuestos):
                     st.button("🚫", key=f"down_{p['id']}_disabled", disabled=True, help="PDF no disponible")
             
             with b3: # BOTÓN VISTA PREVIA (POPOVER GRANDE MEJORADO)
-                with st.popover("👁️ Vista Previa", use_container_width=True):
+                with st.popover("👁️", use_container_width=True):
                     # CSS específico para este popover
                     st.markdown(f"""
                     <style>
