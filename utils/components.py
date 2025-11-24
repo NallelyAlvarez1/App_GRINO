@@ -401,277 +401,204 @@ def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: b
 
     return st.session_state['categorias']
 
-def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = False) -> Dict[str, Any]:
-    """
-    Editor avanzado (Opción A) - CORREGIDO
-    """
-    import math
-
+def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = True) -> Dict[str, Any]:
+    """Muestra y permite editar los ítems del presupuesto cargado."""
+    
     if 'categorias' not in st.session_state:
-        st.session_state['categorias'] = {}
+        st.error("No hay datos de presupuesto cargados.")
+        return {}
 
-    ensure_ids_and_positions(st.session_state['categorias'])
-    categorias_a_mostrar = [cat for cat in st.session_state['categorias'] if st.session_state['categorias'][cat]['items']]
+    categorias = st.session_state['categorias']
+    items_modificados = False
 
-    if not categorias_a_mostrar:
-        with st.expander("📝 Editar/Eliminar Ítems", expanded=False):
-            st.info("📭 No hay ítems para editar")
-        return st.session_state['categorias']
-
-    with st.expander("📝 Editar/Eliminar Ítems", expanded=True):
-        categoria_options = list(st.session_state['categorias'].keys()) + ["GENERAL"]
-
-        for cat_nombre in categoria_options:
-            data = st.session_state['categorias'].get(cat_nombre)
-            if not data:
-                continue
-            items_cat = data.get('items', [])
-            if not items_cat:
-                continue
-
-            st.write(f"### {cat_nombre}")
-            # encabezados
-            col_h1, col_h2, col_h3, col_h4, col_h5, col_h6, col_h7, col_h8 = st.columns([2.5,1,1.2,1.2,1.2,1,1.8,0.7])
-            col_h1.write("**Descripción**"); col_h2.write("**Unidad**"); col_h3.write("**Cant.**")
-            col_h4.write("**P.Unit**"); col_h5.write("**Total**"); col_h6.write("**Orden**"); col_h7.write("**Mover**"); col_h8.write("**Borrar**")
-
-            items_cat.sort(key=lambda it: int(it.get('posicion', 0)))
+    # Obtener lista de categorías disponibles para el selector
+    categorias_disponibles = [cat for cat in categorias.keys() if cat != 'general']
+    
+    for categoria_nombre, datos_categoria in categorias.items():
+        with st.expander(f"📁 {categoria_nombre}", expanded=True):
             
-            for idx, item in enumerate(list(items_cat)):
-                if "id" not in item or item["id"] in [None, "", 0]:
-                    item["id"] = str(uuid.uuid4())
-
-                item_id = item["id"]
-
-                # INICIALIZACIÓN CORREGIDA DE TODOS LOS VALORES
-                # --------------------------------------------------
-                
-                # Nombre - INICIALIZACIÓN MEJORADA
-                name_key = f"name_{item_id}"
-                nombre_valor = item.get('nombre_personalizado') or item.get('nombre', '')
-                if name_key not in st.session_state:
-                    st.session_state[name_key] = nombre_valor
-                elif st.session_state[name_key] != nombre_valor and nombre_valor:
-                    st.session_state[name_key] = nombre_valor
-
-                # Unidad - INICIALIZACIÓN MEJORADA
-                unidad_key = f"unidad_{item_id}"
-                unidad_valor = item.get('unidad', 'Unidad')
-                if unidad_key not in st.session_state:
-                    st.session_state[unidad_key] = unidad_valor
-                elif st.session_state[unidad_key] != unidad_valor:
-                    st.session_state[unidad_key] = unidad_valor
-
-                # Cantidad - INICIALIZACIÓN MEJORADA
-                cant_key = f"cant_{item_id}"
-                cant_valor = int(item.get('cantidad') or 0)
-                if cant_key not in st.session_state:
-                    st.session_state[cant_key] = cant_valor
-                elif st.session_state[cant_key] != cant_valor:
-                    st.session_state[cant_key] = cant_valor
-
-                # Precio - INICIALIZACIÓN MEJORADA
-                pre_key = f"pre_{item_id}"
-                pre_valor = int(item.get('precio_unitario') or 0)
-                if pre_key not in st.session_state:
-                    st.session_state[pre_key] = pre_valor
-
-                # Total - INICIALIZACIÓN MEJORADA
-                total_key = f"total_{item_id}"
-                total_valor = int(item.get('total') or 0)
-                if total_key not in st.session_state:
-                    st.session_state[total_key] = total_valor
-
-                # --------------------------------------------------
-                # RENDERIZADO DE COLUMNAS (igual pero con valores inicializados)
-                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2.5,1.5,1.2,1.5,1.5,0.8,0.8,0.8])
-
-                # NOMBRE - CORREGIDO
-                new_name = col1.text_input(
-                    "Descripción",
-                    value=st.session_state[name_key],
-                    key=f"name_input_{item_id}",
-                    label_visibility="collapsed"
+            # Mostrar y editar mano de obra si existe
+            mano_obra_actual = datos_categoria.get('mano_obra', 0.0)
+            if mano_obra_actual > 0 or st.checkbox(f"Agregar Mano de Obra a {categoria_nombre}", 
+                                                  key=f"mo_check_{categoria_nombre}"):
+                nueva_mano_obra = st.number_input(
+                    "Mano de Obra ($)",
+                    min_value=0.0,
+                    value=float(mano_obra_actual),
+                    step=1000.0,
+                    key=f"mo_edit_{categoria_nombre}"  # Clave única por categoría
                 )
-                if new_name != st.session_state[name_key]:
-                    st.session_state[name_key] = new_name
-                    item['nombre_personalizado'] = new_name
-                    if persist_db:
-                        _call_db_upsert(item)
+                if nueva_mano_obra != mano_obra_actual:
+                    categorias[categoria_nombre]['mano_obra'] = nueva_mano_obra
+                    items_modificados = True
 
-                if item.get('tipo', 'normal') != 'trabajo_simple':
-                    # UNIDAD
-                    unidad_opts = ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"]
-                    current_unidad = st.session_state[unidad_key]
-                    new_unidad = col2.selectbox(
-                        "Unidad",
-                        unidad_opts,
-                        index=unidad_opts.index(current_unidad) if current_unidad in unidad_opts else 2,
-                        key=f"unidad_select_{item_id}",
-                        label_visibility="collapsed"
-                    )
-                    if new_unidad != current_unidad:
-                        st.session_state[unidad_key] = new_unidad
-                        item['unidad'] = new_unidad
-                        if persist_db: 
-                            _call_db_upsert(item)
-
-                    # CANTIDAD
-                    new_cant = col3.number_input(
-                        "Cantidad",
-                        min_value=0,
-                        step=1,
-                        value=st.session_state[cant_key],
-                        key=f"cant_input_{item_id}",
-                        label_visibility="collapsed"
-                    )
-                    if new_cant != st.session_state[cant_key]:
-                        st.session_state[cant_key] = new_cant
-                        item['cantidad'] = int(new_cant)
-                        if item.get('precio_unitario') is not None:
-                            try:
-                                item['total'] = int(item['cantidad']) * int(item.get('precio_unitario') or 0)
-                                st.session_state[total_key] = item['total']
-                            except Exception:
-                                item['total'] = item.get('total', 0)
-                        if persist_db: 
-                            _call_db_upsert(item)
-
-                    # PRECIO UNITARIO
-                    precio_display = str(st.session_state[pre_key]) if st.session_state[pre_key] != 0 else ""
-                    new_pre_str = col4.text_input(
-                        "Precio Unitario",
-                        value=precio_display,
-                        key=f"pre_input_{item_id}",
-                        label_visibility="collapsed"
-                    )
-                    try:
-                        new_pre = clean_integer_input(new_pre_str)
-                    except:
-                        new_pre = 0
+            # Mostrar ítems existentes en tabla editable
+            if datos_categoria['items']:
+                st.markdown("**Ítems existentes:**")
+                
+                for idx, item in enumerate(datos_categoria['items']):
+                    # Usar columnas para la edición en línea
+                    col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 0.5])
                     
-                    if new_pre != st.session_state[pre_key]:
-                        st.session_state[pre_key] = new_pre
-                        item['precio_unitario'] = new_pre
-                        item['total'] = int(item.get('cantidad') or 0) * new_pre
-                        st.session_state[total_key] = item['total']
-                        if persist_db: 
-                            _call_db_upsert(item)
+                    with col1:
+                        # Clave única para cada text_input usando categoria + idx
+                        new_name = col1.text_input(
+                            "Descripción",
+                            value=item.get('nombre_personalizado', item.get('nombre', '')),
+                            key=f"name_{categoria_nombre}_{idx}_{item.get('id', '')}"
+                        )
+                    
+                    with col2:
+                        new_unidad = col2.selectbox(
+                            "Unidad",
+                            options=["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", 
+                                    "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"],
+                            index=0,
+                            key=f"unit_{categoria_nombre}_{idx}_{item.get('id', '')}"
+                        )
+                    
+                    with col3:
+                        new_cantidad = col3.number_input(
+                            "Cantidad",
+                            min_value=1,
+                            value=int(item.get('cantidad', 1)),
+                            step=1,
+                            key=f"qty_{categoria_nombre}_{idx}_{item.get('id', '')}"
+                        )
+                    
+                    with col4:
+                        new_precio = col4.number_input(
+                            "P. Unitario",
+                            min_value=0.0,
+                            value=float(item.get('precio_unitario', 0.0)),
+                            step=1000.0,
+                            key=f"price_{categoria_nombre}_{idx}_{item.get('id', '')}"
+                        )
+                    
+                    with col5:
+                        total_item = new_cantidad * new_precio
+                        col5.text_input(
+                            "Total",
+                            value=f"${total_item:,.0f}",
+                            disabled=True,
+                            key=f"total_{categoria_nombre}_{idx}_{item.get('id', '')}"
+                        )
+                    
+                    with col6:
+                        if col6.button("🗑️", 
+                                     key=f"delete_{categoria_nombre}_{idx}_{item.get('id', '')}",
+                                     help="Eliminar ítem"):
+                            categorias[categoria_nombre]['items'].pop(idx)
+                            ensure_ids_and_positions(categorias)
+                            items_modificados = True
+                            st.rerun()
+                    
+                    # Verificar si hubo cambios
+                    if (new_name != item.get('nombre_personalizado', item.get('nombre', '')) or
+                        new_unidad != item.get('unidad', 'Unidad') or
+                        new_cantidad != item.get('cantidad', 1) or
+                        new_precio != item.get('precio_unitario', 0.0)):
+                        
+                        categorias[categoria_nombre]['items'][idx]['nombre_personalizado'] = new_name
+                        categorias[categoria_nombre]['items'][idx]['unidad'] = new_unidad
+                        categorias[categoria_nombre]['items'][idx]['cantidad'] = new_cantidad
+                        categorias[categoria_nombre]['items'][idx]['precio_unitario'] = new_precio
+                        categorias[categoria_nombre]['items'][idx]['total'] = new_cantidad * new_precio
+                        items_modificados = True
 
-                    # TOTAL (readonly)
-                    total_display = f"${int(item.get('total',0)):,}".replace(",", ".")
-                    col5.text_input(
-                        "Total",
-                        value=total_display,
-                        disabled=True,
-                        key=f"total_display_{item_id}",
-                        label_visibility="collapsed"
+            # Opción para mover ítems a otra categoría
+            if datos_categoria['items'] and categorias_disponibles:
+                st.markdown("---")
+                col_move, col_target = st.columns([2, 1])
+                with col_move:
+                    item_a_mover = st.selectbox(
+                        "Mover ítem a otra categoría:",
+                        options=[item.get('nombre_personalizado', item.get('nombre', '')) 
+                                for item in datos_categoria['items']],
+                        key=f"move_select_{categoria_nombre}"
                     )
+                with col_target:
+                    categoria_destino = st.selectbox(
+                        "Categoría destino:",
+                        options=categorias_disponibles,
+                        key=f"target_cat_{categoria_nombre}"
+                    )
+                
+                if st.button("Mover Ítem", key=f"move_btn_{categoria_nombre}"):
+                    # Encontrar y mover el ítem
+                    for idx, item in enumerate(datos_categoria['items']):
+                        if item.get('nombre_personalizado', item.get('nombre', '')) == item_a_mover:
+                            item_movido = datos_categoria['items'].pop(idx)
+                            categorias[categoria_destino]['items'].append(item_movido)
+                            ensure_ids_and_positions(categorias)
+                            items_modificados = True
+                            st.success(f"Ítem movido a {categoria_destino}")
+                            st.rerun()
+                            break
 
+            # Agregar nuevo ítem a esta categoría
+            st.markdown("---")
+            st.markdown("**Agregar nuevo ítem:**")
+            col_new_name, col_new_unit = st.columns([2, 1])
+            with col_new_name:
+                nuevo_item_nombre = st.text_input(
+                    "Nombre del nuevo ítem",
+                    key=f"new_item_name_{categoria_nombre}"
+                )
+            with col_new_unit:
+                nuevo_item_unidad = st.selectbox(
+                    "Unidad",
+                    options=["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", 
+                            "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"],
+                    key=f"new_item_unit_{categoria_nombre}"
+                )
+            
+            col_new_qty, col_new_price = st.columns(2)
+            with col_new_qty:
+                nuevo_item_cantidad = st.number_input(
+                    "Cantidad",
+                    min_value=1,
+                    value=1,
+                    key=f"new_item_qty_{categoria_nombre}"
+                )
+            with col_new_price:
+                nuevo_item_precio = st.number_input(
+                    "Precio unitario",
+                    min_value=0.0,
+                    value=0.0,
+                    step=1000.0,
+                    key=f"new_item_price_{categoria_nombre}"
+                )
+            
+            if st.button("Agregar Ítem", key=f"add_item_{categoria_nombre}"):
+                if nuevo_item_nombre:
+                    nuevo_item = {
+                        'id': str(uuid.uuid4()),
+                        'nombre': nuevo_item_nombre,
+                        'nombre_personalizado': nuevo_item_nombre,
+                        'unidad': nuevo_item_unidad,
+                        'cantidad': nuevo_item_cantidad,
+                        'precio_unitario': nuevo_item_precio,
+                        'total': nuevo_item_cantidad * nuevo_item_precio,
+                        'categoria': categoria_nombre,
+                        'posicion': len(categorias[categoria_nombre]['items'])
+                    }
+                    categorias[categoria_nombre]['items'].append(nuevo_item)
+                    ensure_ids_and_positions(categorias)
+                    items_modificados = True
+                    st.success("Ítem agregado")
+                    st.rerun()
                 else:
-                    # TRABAJO SIMPLE - CORREGIDO
-                    total_display = str(st.session_state[total_key]) if st.session_state[total_key] != 0 else ""
-                    new_total_str = col5.text_input(
-                        "Total",
-                        value=total_display,
-                        key=f"total_input_{item_id}",
-                        label_visibility="collapsed"
-                    )
-                    try:
-                        new_total = clean_integer_input(new_total_str)
-                    except:
-                        new_total = 0
+                    st.error("El nombre del ítem es requerido")
 
-                    if new_total != st.session_state[total_key]:
-                        st.session_state[total_key] = new_total
-                        item['total'] = new_total
-                        if persist_db: 
-                            _call_db_upsert(item)
+    # Actualizar session_state si hubo cambios
+    if items_modificados:
+        st.session_state['categorias'] = categorias
+        st.session_state['_items_modified'] = True
+        if persist_db:
+            st.success("✅ Cambios guardados temporalmente")
 
-                # reordenamiento (flechas)
-                with col6:
-                    # Crear dos columnas dentro de col6 para poner las flechas lado a lado
-                    col_up, col_down = st.columns(2)
-                    
-                    with col_up:
-                        if st.button("↑", key=f"up_{item_id}", width='stretch'):
-                            # buscar lista que contiene este item
-                            lista = st.session_state['categorias'][cat_nombre]['items']
-                            pos = idx
-                            if pos > 0:
-                                # swap posiciones
-                                lista[pos]['posicion'], lista[pos-1]['posicion'] = lista[pos-1].get('posicion', pos-1), lista[pos].get('posicion', pos)
-                                lista[pos], lista[pos-1] = lista[pos-1], lista[pos]
-                                ensure_ids_and_positions(st.session_state['categorias'])
-                                # persist reindex if necesario
-                                if persist_db: _call_db_reindex(None, sum((c['items'] for c in st.session_state['categorias'].values()), []))
-                                st.rerun()
-                    
-                    with col_down:
-                        if st.button("↓", key=f"down_{item_id}", width='stretch'):
-                            lista = st.session_state['categorias'][cat_nombre]['items']
-                            pos = idx
-                            if pos < len(lista)-1:
-                                lista[pos]['posicion'], lista[pos+1]['posicion'] = lista[pos+1].get('posicion', pos+1), lista[pos].get('posicion', pos)
-                                lista[pos], lista[pos+1] = lista[pos+1], lista[pos]
-                                ensure_ids_and_positions(st.session_state['categorias'])
-                                if persist_db: _call_db_reindex(None, sum((c['items'] for c in st.session_state['categorias'].values()), []))
-                                st.rerun()
-
-                # mover de categoria (selectbox)
-                with col7:
-                    move_key = f"move_{item_id}"
-                    # opciones: todas las categorias + GENERAL
-                    opts = list(st.session_state['categorias'].keys()) + ["GENERAL"]
-                    current_cat = item.get('categoria', cat_nombre)
-                    # don't raise if current_cat not in opts
-                    current_index = opts.index(current_cat) if current_cat in opts else 0
-                    new_cat = col7.selectbox("Mover a", opts, index=current_index, key=move_key, label_visibility="collapsed")
-                    if new_cat != current_cat:
-                        # remover de la categoria actual e insertar al final de la nueva
-                        # eliminar por id
-                        try:
-                            # quitar del current list
-                            src_list = st.session_state['categorias'][cat_nombre]['items']
-                            new_list = [it for it in src_list if it.get('id') != item_id]
-                            st.session_state['categorias'][cat_nombre]['items'] = new_list
-                            # actualizar item.categoria
-                            item['categoria'] = new_cat
-                            # si new_cat no existe, crear
-                            if new_cat == "GENERAL":
-                                if "GENERAL" not in st.session_state['categorias']:
-                                    st.session_state['categorias']["GENERAL"] = {'categoria_id': None, 'items': [], 'mano_obra': 0}
-                                dest_list = st.session_state['categorias']["GENERAL"]['items']
-                            else:
-                                if new_cat not in st.session_state['categorias']:
-                                    st.session_state['categorias'][new_cat] = {'categoria_id': None, 'items': [], 'mano_obra': 0}
-                                dest_list = st.session_state['categorias'][new_cat]['items']
-                            # append and reindex positions
-                            dest_list.append(item)
-                            ensure_ids_and_positions(st.session_state['categorias'])
-                            if persist_db:
-                                _call_db_upsert(item)
-                                _call_db_reindex(None, sum((c['items'] for c in st.session_state['categorias'].values()), []))
-                            st.rerun()
-                        except Exception:
-                            st.error("Error al mover el ítem de categoría")
-
-                # eliminar
-                with col8:
-                    if col8.button("❌", key=f"del_{item_id}"):
-                        # eliminar por id de la lista actual
-                        try:
-                            src_list = st.session_state['categorias'][cat_nombre]['items']
-                            st.session_state['categorias'][cat_nombre]['items'] = [it for it in src_list if it.get('id') != item_id]
-                            if persist_db:
-                                _call_db_delete(item_id)
-                                _call_db_reindex(None, sum((c['items'] for c in st.session_state['categorias'].values()), []))
-                            ensure_ids_and_positions(st.session_state['categorias'])
-                            st.rerun()
-                        except Exception:
-                            st.error("No se pudo eliminar el ítem")
-
-    return st.session_state['categorias']
+    return categorias
 
 def show_trabajos_simples(items_data: Dict[str, Any], persist_db: bool = False) -> None:
     """
