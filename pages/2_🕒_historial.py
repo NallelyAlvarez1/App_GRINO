@@ -229,13 +229,21 @@ for i, p in enumerate(presupuestos):
                     st.rerun()
 
             with b4: # BOTÓN ELIMINAR
-                if st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar"):
-                    if delete_presupuesto(p['id'], user_id):
-                        st.success("Presupuesto eliminado correctamente")
-                        st.rerun()
-                    else:
-                        st.error("No se pudo eliminar el presupuesto.")
+
+                delete_clicked = st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar")
         
+        # --- Mensaje de eliminación FUERA de col6 pero DENTRO del container ---
+        if 'delete_success' in st.session_state and st.session_state['delete_success'] == p['id']:
+            st.success("✅ Presupuesto eliminado correctamente")
+            # Limpiar el estado después de mostrar el mensaje
+            del st.session_state['delete_success']
+                # Lógica de eliminación separada
+        if delete_clicked:
+            if delete_presupuesto(p['id'], user_id):
+                st.session_state['delete_success'] = p['id']
+                st.rerun()
+            else:
+                st.error("❌ No se pudo eliminar el presupuesto.")
         # --- Detalle del Presupuesto ---
         if st.session_state.get(state_key, False):
             with st.expander(f"Detalle Presupuesto ID: {p['id']}", expanded=True):
