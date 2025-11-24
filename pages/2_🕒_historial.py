@@ -202,7 +202,7 @@ for i, p in enumerate(presupuestos):
                 st.session_state[state_key] = False
 
             with b1: # BOTÓN EDITAR
-                if st.button("✏️ Editar", key=f"edit_{p['id']}", help="Editar este presupuesto", use_container_width=True):
+                if st.button("✏️", key=f"edit_{p['id']}", help="Editar este presupuesto", use_container_width=True):
                     st.session_state['presupuesto_a_editar_id'] = p['id'] 
                     st.session_state['presupuesto_cargado_automaticamente'] = False  # Resetear para carga fresca
                     st.success(f"🔄 Redirigiendo para editar presupuesto ID: {p['id']}")

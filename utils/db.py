@@ -329,14 +329,31 @@ def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
     return []
 
 def delete_presupuesto(presupuesto_id: int, user_id: str) -> bool:
-    """Elimina un presupuesto (asumiendo que los ítems se eliminan en cascada o con RLS)."""
+    """Elimina un presupuesto (los ítems se eliminan automáticamente por CASCADE)."""
     supabase = get_supabase_client()
     try:
-        # La eliminación debe ser segura: por ID del presupuesto Y ID del usuario
-        response = supabase.from_('presupuestos').delete().eq('id', presupuesto_id).eq('creado_por', user_id).execute()
-        return response.data == []
+        print(f"🔍 DEBUG: Intentando eliminar presupuesto {presupuesto_id} para usuario {user_id}")
+        
+        response = supabase.from_('presupuestos')\
+            .delete()\
+            .eq('id', presupuesto_id)\
+            .eq('creado_por', user_id)\
+            .execute()
+        
+        print(f"🔍 DEBUG: Response: {response}")
+        print(f"🔍 DEBUG: Response data: {response.data}")
+        print(f"🔍 DEBUG: Response error: {getattr(response, 'error', 'No error')}")
+        
+        if hasattr(response, 'error') and response.error:
+            st.error(f"Error del servidor: {response.error.message}")
+            return False
+        
+        return True
+            
     except Exception as e:
         st.error(f"Error al eliminar: {e}")
+        import traceback
+        print(f"🔍 DEBUG: Exception: {traceback.format_exc()}")
         return False
   
 def save_presupuesto_completo(
