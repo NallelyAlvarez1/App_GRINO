@@ -243,9 +243,9 @@ for i, p in enumerate(presupuestos):
                     st.markdown(f"""
                     <style>
                     div[data-testid="stPopover"] [data-testid="stMarkdownContainer"]:has(h3) + div {{
-                        width: 900px !important;
+                        width: 1000px !important;
                         max-width: 95vw !important;
-                        height: 700px !important;
+                        height: 900px !important;
                         max-height: 85vh !important;
                         overflow-y: auto !important;
                         padding: 20px !important;
