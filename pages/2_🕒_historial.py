@@ -184,14 +184,27 @@ for i, p in enumerate(presupuestos):
         lugar_nombre = p.get('lugar', {}).get('nombre', 'N/A')
         col2.write(lugar_nombre.title() if lugar_nombre else 'N/A')
         
-        # NUEVA COLUMNA: Descripción
+        # NUEVA COLUMNA: Descripción - CON MÁS OPCIONES DE DEBUG
         descripcion = p.get('descripcion', 'Sin descripción')
+        
+        # DEBUG: Verificar diferentes formas de acceder a la descripción
+        if i == 0:  # Solo para el primer presupuesto
+            st.write(f"🔍 DEBUG - Descripción encontrada: '{descripcion}'")
+            st.write(f"🔍 DEBUG - Tipo: {type(descripcion)}")
+            # Intentar otras posibles claves
+            posibles_claves = ['descripcion', 'description', 'desc', 'notas', 'notes']
+            for clave in posibles_claves:
+                if clave in p:
+                    st.write(f"🔍 DEBUG - Clave '{clave}': {p[clave]}")
+        
         # Mostrar texto truncado si es muy largo, con tooltip completo
-        if descripcion and len(descripcion) > 30:
+        if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
             col3.write(descripcion[:30] + "...")
             col3.caption(descripcion)  # Tooltip con descripción completa
+        elif descripcion and descripcion != 'Sin descripción':
+            col3.write(descripcion)
         else:
-            col3.write(descripcion if descripcion else 'Sin descripción')
+            col3.write('Sin descripción')
             
         fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
         try:
