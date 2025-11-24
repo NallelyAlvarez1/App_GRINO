@@ -198,7 +198,7 @@ for i, p in enumerate(presupuestos):
         else:
             col3.write('Sin descripción')
 
-        col6.write(f"**${notas}**")
+        col4.write(f"**{notas}**")
 
         fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
         try:
