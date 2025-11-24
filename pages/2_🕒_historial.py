@@ -179,23 +179,7 @@ for i, p in enumerate(presupuestos):
 
         # --- COLUMNA VERSIÓN DESDE 'notas' ---
         notas = p.get('notas', '')
-        if 'V' in notas:
-            # Extraer la versión para mostrar
-            import re
-            match = re.search(r'V(\d+)', notas)
-            if match:
-                version = match.group(1)
-                col4.write(f"**V{version}**")
-                # Mostrar notas completas como tooltip
-                if len(notas) > 20:
-                    col4.caption(notas[:20] + "...")
-                else:
-                    col4.caption(notas)
-            else:
-                col4.write("Original")
-        else:
-            col4.write("Original")
-        
+
         cliente_nombre = p.get('cliente', {}).get('nombre', 'N/A')
         col1.write(cliente_nombre.title() if cliente_nombre else 'N/A')
             
@@ -213,19 +197,21 @@ for i, p in enumerate(presupuestos):
             col3.write(descripcion)
         else:
             col3.write('Sin descripción')
-            
+
+        col6.write(f"**${notas}**")
+
         fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
         try:
             fecha_dt = datetime.fromisoformat(fecha_str.replace('Z', '+00:00')) # Manejo de formato ISO
-            col4.write(fecha_dt.strftime('%Y-%m-%d'))
+            col5.write(fecha_dt.strftime('%Y-%m-%d'))
         except Exception:
-            col4.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
+            col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
             
-        col5.write(f"**${total_display:,.2f}**")
-        col6.write(str(p.get('num_items', 0)))
+        col6.write(f"**${total_display:,.2f}**")
+        col7.write(str(p.get('num_items', 0)))
 
         # --- Botones de Acción ---
-        with col7:
+        with col8:
             b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
             
             state_key = f"expander_toggle_{p['id']}"
