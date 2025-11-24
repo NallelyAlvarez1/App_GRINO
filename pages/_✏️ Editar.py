@@ -396,7 +396,7 @@ lugar_trabajo_id_actualizado, lugar_nombre_actualizado, \
 descripcion_actualizada = show_cliente_lugar_selector_edicion(
     user_id=user_id,
     cliente_inicial_id=cliente_id_actual,
-    lugar_inicial_id=lugar_id_actual, 
+    lugar_inicial_id=lugar_id_actual,
     descripcion_inicial=descripcion_actual
 )
 
@@ -560,14 +560,15 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
         total_general = calcular_total_edicion(categorias)
         presupuesto_original_id = st.session_state.get('presupuesto_a_editar_id')
         # LLAMADA CORREGIDA
+# LLAMADA CORREGIDA - elimina el parámetro presupuesto_original_id
         nuevo_id = save_edited_presupuesto(
             user_id=user_id,
             cliente_id=cliente_id_actualizado,
             lugar_trabajo_id=lugar_trabajo_id_actualizado,
             descripcion=descripcion_actualizada,
             items_data=items_data,
-            total_general=total_general,
-            presupuesto_original_id=st.session_state.get('presupuesto_a_editar_id')
+            total_general=total_general
+            # Elimina esta línea: presupuesto_original_id=st.session_state.get('presupuesto_a_editar_id')
         )
 
         if not nuevo_id:
