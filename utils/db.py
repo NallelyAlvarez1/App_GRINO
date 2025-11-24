@@ -296,7 +296,7 @@ def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
     supabase = get_supabase_client()
     
     query = supabase.from_('presupuestos').select(
-        'id, total, fecha_creacion, notas, '
+        'id, total, fecha_creacion, descripcion, '
         'cliente:cliente_id(nombre), '
         'lugar:lugar_trabajo_id(nombre), '
         'items_en_presupuesto(count)'
