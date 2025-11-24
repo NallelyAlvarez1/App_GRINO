@@ -291,12 +291,11 @@ def get_presupuestos_por_lugar(lugar_id: int) -> list[dict]:
 def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
     """
     Obtiene los presupuestos del usuario con filtros aplicados.
-    (El resto del cuerpo de esta función es el que ya tenías y es correcto)
     """
     supabase = get_supabase_client()
     
     query = supabase.from_('presupuestos').select(
-        'id, total, fecha_creacion, descripcion, '
+        'id, total, fecha_creacion, descripcion, notas, version, presupuesto_original_id, '  # AGREGADOS
         'cliente:cliente_id(nombre), '
         'lugar:lugar_trabajo_id(nombre), '
         'items_en_presupuesto(count)'
@@ -576,21 +575,54 @@ def save_edited_presupuesto(
     lugar_trabajo_id: int,
     descripcion: str,
     items_data: Dict[str, Any],
-    total_general: float
+    total_general: float,
+    presupuesto_original_id: int = None  # NUEVO PARÁMETRO: ID del presupuesto que se está editando
 ) -> Optional[int]:
     """
-    Crea un NUEVO presupuesto a partir de datos editados.
+    Crea un NUEVO presupuesto a partir de datos editados, con control de versiones.
     """
     supabase = get_supabase_client()
 
     try:
+        # --- DETERMINAR VERSIÓN ---
+        version = 1
+        notas_con_version = descripcion  # Empezamos con la descripción original
+        
+        if presupuesto_original_id:
+            # Buscar si hay versiones anteriores de este presupuesto
+            response = supabase.table('presupuestos')\
+                .select('notas, version')\
+                .eq('presupuesto_original_id', presupuesto_original_id)\
+                .order('version', desc=True)\
+                .limit(1)\
+                .execute()
+            
+            if response.data:
+                # Hay versiones anteriores, incrementar la versión
+                ultima_version = response.data[0]['version'] or 1
+                version = ultima_version + 1
+                notas_anteriores = response.data[0]['notas'] or ''
+                
+                # Construir las nuevas notas
+                if notas_anteriores:
+                    notas_con_version = f"{notas_anteriores} → V{version}"
+                else:
+                    notas_con_version = f"V{version}"
+            else:
+                # Es la primera edición (V2 del original)
+                version = 2
+                notas_con_version = f"{descripcion} | V2" if descripcion else "V2"
+
         # --- FASE 1: Crear NUEVO registro en presupuestos ---
         nuevo_presupuesto_data = {
             'cliente_id': cliente_id,
             'lugar_trabajo_id': lugar_trabajo_id,
-            'descripcion': descripcion,
+            'descripcion': descripcion,  # Descripción original siempre
+            'notas': notas_con_version,  # Aquí va el historial de versiones
             'total': float(total_general),
-            'creado_por': user_id
+            'creado_por': user_id,
+            'presupuesto_original_id': presupuesto_original_id,  # Relacionar con el original
+            'version': version  # Número de versión
         }
         
         # CORRECCIÓN: Usar la sintaxis correcta de Supabase
@@ -664,6 +696,7 @@ def save_edited_presupuesto(
     except Exception as e:
         st.error(f"Error al crear nuevo presupuesto: {e}")
         return None
+    
 # Ver los detalles del presupuesto
 @st.cache_data(ttl=60) 
 def get_presupuesto_detallado(presupuesto_id: int) -> dict:

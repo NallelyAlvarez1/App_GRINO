@@ -160,24 +160,32 @@ st.subheader("📋 Lista de Presupuestos")
 
 # Encabezado tipo tabla - MODIFICADO: Agregar columna Descripción
 with st.container():
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 2, 1, 3])  # 7 columnas ahora
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2, 2, 1.5, 2, 2, 1, 3])
     col1.markdown("**Cliente**")
     col2.markdown("**Lugar**")
-    col3.markdown("**Descripción**")  # NUEVA COLUMNA
-    col4.markdown("**Fecha**")
-    col5.markdown("**Total**")
-    col6.markdown("**Ítems**")
-    col7.markdown("**Acciones**")
+    col3.markdown("**Descripción**")
+    col4.markdown("**Versión**")  # NUEVA COLUMNA
+    col5.markdown("**Fecha**")
+    col6.markdown("**Total**")
+    col7.markdown("**Ítems**")
+    col8.markdown("**Acciones**")
 
 # Filas tipo tabla - MODIFICADO: Agregar columna Descripción
 for i, p in enumerate(presupuestos):
-    
-    total_display = safe_numeric_value(p.get('total', 0))
-    
     with st.container(border=True):
-        col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 2, 1, 3])  # 7 columnas ahora
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2, 2, 1.5, 2, 2, 1, 3])
+    
+        total_display = safe_numeric_value(p.get('total', 0))
 
         # --- Datos de la Fila ---
+        version = p.get('version', 1)
+        notas = p.get('notas', '')
+        if version > 1:
+            col4.write(f"**V{version}**")
+            col4.caption(notas)  # Mostrar notas como tooltip
+        else:
+            col4.write("Original")
+        
         cliente_nombre = p.get('cliente', {}).get('nombre', 'N/A')
         col1.write(cliente_nombre.title() if cliente_nombre else 'N/A')
             

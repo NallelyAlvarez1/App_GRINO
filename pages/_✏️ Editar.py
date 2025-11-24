@@ -557,7 +557,7 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
 
         items_data = categorias  
         total_general = calcular_total_edicion(categorias)
-
+        presupuesto_original_id = st.session_state.get('presupuesto_a_editar_id')
         # LLAMADA CORREGIDA
         nuevo_id = save_edited_presupuesto(
             user_id=user_id,
@@ -565,7 +565,8 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
             lugar_trabajo_id=lugar_trabajo_id_actualizado,
             descripcion=descripcion_actualizada,
             items_data=items_data,
-            total_general=total_general
+             total_general=total_general,
+            presupuesto_original_id=presupuesto_original_id 
         )
 
         if not nuevo_id:

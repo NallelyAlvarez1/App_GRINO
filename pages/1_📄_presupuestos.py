@@ -1,6 +1,8 @@
 from typing import Any, Dict
 import streamlit as st
 import os
+import time
+import uuid
 from utils.pdf import generar_pdf
 from utils.auth import check_login, sign_out
 from utils.components import (
@@ -12,6 +14,8 @@ from utils.components import (
     safe_numeric_value
 )
 from utils.db import save_presupuesto_completo
+# IMPORTAR LAS FUNCIONES DE AUTOSAVE
+from utils.autosave import AutoSaveManager, capture_current_state, restore_draft_state
 
 
 st.markdown("""
@@ -66,28 +70,90 @@ with st.sidebar:
         st.toast("Sesión cerrada correctamente", icon="🌱")
         st.rerun()
 
+# --- INICIALIZAR AUTOSAVE ---
+user_id = st.session_state.get('user_id')
+autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
+
+# --- VERIFICAR BORRADOR AL INICIAR ---
+if autosave_manager.has_draft() and 'categorias' not in st.session_state:
+    draft = autosave_manager.load_draft()
+    if draft:
+        draft_age = autosave_manager.get_draft_age()
+        
+        st.warning(f"📝 Se encontró un borrador guardado {draft_age}")
+        
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            if st.button("🔄 Cargar Borrador", use_container_width=True, key="load_draft_main"):
+                restore_draft_state(draft)
+                st.rerun()
+        with col2:
+            if st.button("👀 Ver Vista Previa", use_container_width=True, key="preview_draft_main"):
+                with st.expander("Vista previa del borrador", expanded=True):
+                    st.json(draft)
+        with col3:
+            if st.button("🗑️ Descartar", use_container_width=True, key="discard_draft_main"):
+                autosave_manager.clear_draft()
+                st.rerun()
+
+# --- FUNCIÓN DE AUTOGUARDADO ---
+def autosave_with_debounce():
+    """Autoguardado con control de frecuencia"""
+    current_time = time.time()
+    last_save = getattr(st.session_state, '_last_autosave_main', 0)
+    
+    # Guardar máximo cada 30 segundos
+    if current_time - last_save > 30:
+        current_state = capture_current_state()
+        if autosave_manager.save_draft(current_state):
+            st.session_state._last_autosave_main = current_time
+            st.toast("💾 Guardado automáticamente", icon="💾")
+
 # --- CONTENIDO PROTEGIDO (SOLO SI EL USUARIO ESTÁ LOGUEADO) ---
 st.header("📑 Generador de Presupuestos", divider="blue")
+
 # === BOTÓN PARA LIMPIAR TODO ===
-if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary"):
-    keys_to_delete = [
-        "categorias",
-        "descripcion",
-        "items_data",
-        "cliente_id",
-        "cliente_nombre",
-        "lugar_trabajo_id",
-        "lugar_nombre",
-        "trabajos_simples",
-        "total_general"
-    ]
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
+        keys_to_delete = [
+            "categorias",
+            "descripcion", 
+            "items_data",
+            "cliente_id",
+            "cliente_nombre",
+            "lugar_trabajo_id",
+            "lugar_nombre",
+            "trabajos_simples",
+            "total_general"
+        ]
 
-    for key in keys_to_delete:
-        if key in st.session_state:
-            del st.session_state[key]
+        for key in keys_to_delete:
+            if key in st.session_state:
+                del st.session_state[key]
 
-    st.rerun()
+        # Limpiar también el borrador
+        autosave_manager.clear_draft()
+        st.rerun()
 
+with col2:
+    # Panel de control de autoguardado
+    if autosave_manager.has_draft():
+        draft_age = autosave_manager.get_draft_age()
+        st.caption(f"💾 Último guardado: {draft_age}")
+        
+        col_save, col_clear = st.columns(2)
+        with col_save:
+            if st.button("💾 Guardar", key="manual_save_main", use_container_width=True):
+                current_state = capture_current_state()
+                if autosave_manager.save_draft(current_state):
+                    st.toast("✅ Borrador guardado manualmente")
+        with col_clear:
+            if st.button("🗑️ Limpiar", key="clear_draft_main", use_container_width=True):
+                autosave_manager.clear_draft()
+                st.rerun()
+    else:
+        st.caption("💾 No hay borradores guardados")
 
 # Obtener user_id para usar en los componentes
 user_id = st.session_state.get('user_id')
@@ -95,15 +161,30 @@ user_id = st.session_state.get('user_id')
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO A REALIZAR ==========
 cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
 
+# Autoguardado cuando cambian cliente/lugar/descripción
+if any([cliente_id != st.session_state.get('cliente_id'),
+        lugar_trabajo_id != st.session_state.get('lugar_trabajo_id'), 
+        descripcion != st.session_state.get('descripcion')]):
+    autosave_with_debounce()
+
+# Actualizar session state
+st.session_state['cliente_id'] = cliente_id
+st.session_state['lugar_trabajo_id'] = lugar_trabajo_id  
+st.session_state['descripcion'] = descripcion
+
 # ========== SECCIÓN PRINCIPAL CON COLUMNAS ==========
 col1, col2, col3 = st.columns([8,0.5,12])
 
 with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
     items_data = show_items_presupuesto(user_id)
+    
+    # Autoguardado después de agregar/modificar items
+    if st.session_state.get('_items_modified', False):
+        autosave_with_debounce()
+        st.session_state['_items_modified'] = False
 
     # ========== SECCIÓN MANO DE OBRA ===============
-
     st.markdown(" ")
     st.markdown("#### 🛠️Añadir trabajo")
     show_trabajos_simples(items_data)
@@ -120,8 +201,11 @@ with col3:
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()):
     st.subheader("✏️ Editar Items", divider="blue")
     items_data = show_edited_presupuesto(user_id)
-
-
+    
+    # Autoguardado después de edición avanzada
+    if st.session_state.get('_items_modified', False):
+        autosave_with_debounce()
+        st.session_state['_items_modified'] = False
 
 # ========== GUARDADO ==========
 # Solo mostrar botón de guardar si hay items y total > 0
@@ -177,6 +261,9 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                     except Exception:
                         pass
 
+                    # LIMPIAR BORRADOR DESPUÉS DE GUARDADO EXITOSO
+                    autosave_manager.clear_draft()
+
                     # Mostrar opciones
                     col1, col2, col3 = st.columns(3)
                     
@@ -186,19 +273,21 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                             pdf_bytes,
                             file_name=f"presupuesto_{presupuesto_id}.pdf",
                             mime="application/pdf",
-                            width='stretch'
+                            use_container_width=True
                         )
                     
                     with col2:
-                        if st.button("🔄 Crear otro presupuesto", width='stretch'):
+                        if st.button("🔄 Crear otro presupuesto", use_container_width=True):
                             # Limpiar session state
                             for key in ['categorias', 'descripcion']:
                                 if key in st.session_state:
                                     del st.session_state[key]
+                            # Limpiar borrador
+                            autosave_manager.clear_draft()
                             st.rerun()
                     
                     with col3:
-                        st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial", width='stretch')
+                        st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial", use_container_width=True)
 
                 else:
                     st.error("❌ Error al crear el presupuesto en la base de datos")
