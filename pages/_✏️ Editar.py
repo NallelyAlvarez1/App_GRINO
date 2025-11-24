@@ -390,13 +390,19 @@ descripcion_actual = st.session_state.get('presupuesto_descripcion', '')
 # DEBUG: Mostrar los valores actuales para verificar
 st.write(f"🔍 DEBUG - Cliente ID: {cliente_id_actual}, Lugar ID: {lugar_id_actual}, Descripción: {descripcion_actual}")
 
+# Primero obtén el presupuesto actual como diccionario
+presupuesto_actual = {
+    'cliente_id': cliente_id_actual,
+    'lugar_trabajo_id': lugar_id_actual,
+    'descripcion': descripcion_actual
+}
+
+# Luego llama a la función con el diccionario
 cliente_id_actualizado, cliente_nombre_actualizado, \
 lugar_trabajo_id_actualizado, lugar_nombre_actualizado, \
 descripcion_actualizada = show_cliente_lugar_selector_edicion(
     user_id=user_id,
-    cliente_inicial_id=cliente_id_actual,
-    lugar_inicial_id=lugar_id_actual,
-    descripcion_inicial=descripcion_actual
+    presupuesto_editar=presupuesto_actual  # ← Cambio aquí
 )
 
 # Actualizar los valores en session_state si cambiaron
@@ -413,7 +419,7 @@ if any([cliente_id_actualizado != cliente_id_actual,
         descripcion_actualizada != descripcion_actual]):
     autosave_with_debounce()
 
-col_izq, col_der = st.columns([1.2, 1.5])   
+col_izq, col_der = st.columns([1.2, 1.5])
 
 # --------------------------------
 #  COLUMNA IZQUIERDA
