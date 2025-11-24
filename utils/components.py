@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from functools import partial
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Callable, Dict, List, Tuple, Optional
 # 🚨 IMPORTANTE: Asegúrate que el nombre del archivo de la DB sea 'db.py'
 from utils.db import (
     create_categoria, 
@@ -198,7 +198,7 @@ def show_cliente_lugar_selector(user_id: str) -> Tuple[Optional[int], str, Optio
     
     return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
 
-def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str, 
+def show_cliente_lugar_selector_edicion(datos: List[Tuple[int, str]], label: str, key: str, 
                             btn_nuevo: str, modal_title: str, placeholder_nombre: str,
                             funcion_creacion: Callable, user_id: str, 
                             valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
