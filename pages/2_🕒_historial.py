@@ -177,12 +177,22 @@ for i, p in enumerate(presupuestos):
     
         total_display = safe_numeric_value(p.get('total', 0))
 
-        # --- Datos de la Fila ---
-        version = p.get('version', 1)
+        # --- COLUMNA VERSIÓN DESDE 'notas' ---
         notas = p.get('notas', '')
-        if version > 1:
-            col4.write(f"**V{version}**")
-            col4.caption(notas)  # Mostrar notas como tooltip
+        if 'V' in notas:
+            # Extraer la versión para mostrar
+            import re
+            match = re.search(r'V(\d+)', notas)
+            if match:
+                version = match.group(1)
+                col4.write(f"**V{version}**")
+                # Mostrar notas completas como tooltip
+                if len(notas) > 20:
+                    col4.caption(notas[:20] + "...")
+                else:
+                    col4.caption(notas)
+            else:
+                col4.write("Original")
         else:
             col4.write("Original")
         

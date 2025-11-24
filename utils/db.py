@@ -295,7 +295,7 @@ def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
     supabase = get_supabase_client()
     
     query = supabase.from_('presupuestos').select(
-        'id, total, fecha_creacion, descripcion, notas, version, presupuesto_original_id, '  # AGREGADOS
+        'id, total, fecha_creacion, descripcion, notas, '  # INCLUIR 'notas'
         'cliente:cliente_id(nombre), '
         'lugar:lugar_trabajo_id(nombre), '
         'items_en_presupuesto(count)'
@@ -576,65 +576,71 @@ def save_edited_presupuesto(
     descripcion: str,
     items_data: Dict[str, Any],
     total_general: float,
-    presupuesto_original_id: int = None  # NUEVO PARÁMETRO: ID del presupuesto que se está editando
+    presupuesto_original_id: int = None  # NUEVO PARÁMETRO
 ) -> Optional[int]:
     """
-    Crea un NUEVO presupuesto a partir de datos editados, con control de versiones.
+    Crea un NUEVO presupuesto a partir de datos editados, con control de versiones en 'notas'.
     """
     supabase = get_supabase_client()
 
     try:
-        # --- DETERMINAR VERSIÓN ---
-        version = 1
-        notas_con_version = descripcion  # Empezamos con la descripción original
+        # --- DETERMINAR VERSIÓN USANDO LA COLUMNA 'notas' ---
+        notas_con_version = ""  # Empezamos vacío
         
         if presupuesto_original_id:
-            # Buscar si hay versiones anteriores de este presupuesto
-            response = supabase.table('presupuestos')\
-                .select('notas, version')\
-                .eq('presupuesto_original_id', presupuesto_original_id)\
-                .order('version', desc=True)\
-                .limit(1)\
+            # Buscar el presupuesto original para ver su versión
+            response_original = supabase.table('presupuestos')\
+                .select('notas')\
+                .eq('id', presupuesto_original_id)\
                 .execute()
             
-            if response.data:
-                # Hay versiones anteriores, incrementar la versión
-                ultima_version = response.data[0]['version'] or 1
-                version = ultima_version + 1
-                notas_anteriores = response.data[0]['notas'] or ''
+            if response_original.data:
+                notas_original = response_original.data[0].get('notas', '')
                 
-                # Construir las nuevas notas
-                if notas_anteriores:
-                    notas_con_version = f"{notas_anteriores} → V{version}"
+                if 'V' in notas_original:
+                    # Extraer la versión actual y incrementar
+                    import re
+                    match = re.search(r'V(\d+)', notas_original)
+                    if match:
+                        version_actual = int(match.group(1))
+                        nueva_version = version_actual + 1
+                        # Reemplazar la versión anterior
+                        notas_con_version = re.sub(r'V\d+', f'V{nueva_version}', notas_original)
+                    else:
+                        # Si tiene 'V' pero no número, agregar V2
+                        notas_con_version = f"{notas_original} | V2"
                 else:
-                    notas_con_version = f"V{version}"
+                    # Es la primera edición (V2)
+                    if notas_original:
+                        notas_con_version = f"{notas_original} | V2"
+                    else:
+                        notas_con_version = "V2"
             else:
-                # Es la primera edición (V2 del original)
-                version = 2
-                notas_con_version = f"{descripcion} | V2" if descripcion else "V2"
+                # No se encontró el original, empezar con V2
+                notas_con_version = "V2"
+        else:
+            # Es un presupuesto completamente nuevo (V1)
+            notas_con_version = "V1"
 
         # --- FASE 1: Crear NUEVO registro en presupuestos ---
         nuevo_presupuesto_data = {
             'cliente_id': cliente_id,
             'lugar_trabajo_id': lugar_trabajo_id,
             'descripcion': descripcion,  # Descripción original siempre
-            'notas': notas_con_version,  # Aquí va el historial de versiones
+            'notas': notas_con_version,  # Control de versiones aquí
             'total': float(total_general),
             'creado_por': user_id,
-            'presupuesto_original_id': presupuesto_original_id,  # Relacionar con el original
-            'version': version  # Número de versión
+            'presupuesto_original_id': presupuesto_original_id  # Relacionar con el original
         }
         
-        # CORRECCIÓN: Usar la sintaxis correcta de Supabase
         response_presupuesto = supabase.table('presupuestos').insert(nuevo_presupuesto_data).execute()
 
         if not response_presupuesto.data:
             raise Exception("Fallo la creación del nuevo presupuesto.")
         
-        # La respuesta debe contener los datos del registro insertado, incluyendo el ID
         nuevo_presupuesto_id = response_presupuesto.data[0]['id']
 
-        # --- FASE 2: Preparar e insertar los ítems para el NUEVO presupuesto ---
+        # --- FASE 2: Preparar e insertar los ítems (código existente) ---
         items_a_insertar = []
         # Obtener mapeo de nombre de categoría a ID
         categorias_map = {nombre.lower(): id_cat for id_cat, nombre in get_categorias(user_id)}
@@ -653,11 +659,10 @@ def save_edited_presupuesto(
                 if total <= 0: 
                     continue
                 
-                # Para ítems sin categoría explícita (como 'general'), usamos la ID de la categoría del loop
                 final_cat_id = cat_id if cat_id is not None else None 
                 
                 items_a_insertar.append({
-                    'presupuesto_id': nuevo_presupuesto_id,  # Usar el NUEVO ID
+                    'presupuesto_id': nuevo_presupuesto_id,
                     'categoria_id': final_cat_id,
                     'nombre_personalizado': item['nombre'],
                     'unidad': item['unidad'],
@@ -669,11 +674,10 @@ def save_edited_presupuesto(
             # --- Procesar Mano de Obra ---
             mano_obra = float(data.get('mano_obra', 0.0))
             if mano_obra > 0:
-                # La MO general o de categoría usa el ID de categoría o None si es 'general'
                 final_cat_id_mo = cat_id if cat_nombre.lower() != 'general' else None
                 
                 items_a_insertar.append({
-                    'presupuesto_id': nuevo_presupuesto_id,  # Usar el NUEVO ID
+                    'presupuesto_id': nuevo_presupuesto_id,
                     'categoria_id': final_cat_id_mo, 
                     'nombre_personalizado': 'Mano de Obra',
                     'unidad': 'Unidad',
@@ -687,7 +691,6 @@ def save_edited_presupuesto(
             response_insert = supabase.table('items_en_presupuesto').insert(items_a_insertar).execute()
             
             if not response_insert.data:
-                # Eliminar el presupuesto creado si falla la inserción de items
                 supabase.table('presupuestos').delete().eq('id', nuevo_presupuesto_id).execute()
                 raise Exception("Fallo la inserción de los ítems del nuevo presupuesto.")
 
@@ -696,7 +699,6 @@ def save_edited_presupuesto(
     except Exception as e:
         st.error(f"Error al crear nuevo presupuesto: {e}")
         return None
-    
 # Ver los detalles del presupuesto
 @st.cache_data(ttl=60) 
 def get_presupuesto_detallado(presupuesto_id: int) -> dict:
