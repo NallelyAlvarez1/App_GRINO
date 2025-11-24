@@ -237,10 +237,37 @@ for i, p in enumerate(presupuestos):
                 else:
                     st.button("🚫", key=f"down_{p['id']}_disabled", disabled=True, help="PDF no disponible")
             
-            with b3: # BOTÓN VISTA PREVIA (POPOVER)
+            with b3: # BOTÓN VISTA PREVIA (POPOVER GRANDE MEJORADO)
                 with st.popover("👁️ Vista Previa", use_container_width=True):
-                    st.write(f"### 📋 Presupuesto ID: {p['id']}")
+                    # CSS específico para este popover
+                    st.markdown(f"""
+                    <style>
+                    div[data-testid="stPopover"] [data-testid="stMarkdownContainer"]:has(h3) + div {{
+                        width: 900px !important;
+                        max-width: 95vw !important;
+                        height: 700px !important;
+                        max-height: 85vh !important;
+                        overflow-y: auto !important;
+                        padding: 20px !important;
+                    }}
+                    </style>
+                    """, unsafe_allow_html=True)
+                    
+                    st.header("📋 Vista Previa del Presupuesto")
+                    st.subheader(f"ID: {p['id']}")
+                    
+                    # Mostrar información básica primero
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"**Cliente:** {p.get('cliente', {}).get('nombre', 'N/A')}")
+                        st.write(f"**Lugar:** {p.get('lugar', {}).get('nombre', 'N/A')}")
+                    with col2:
+                        st.write(f"**Fecha:** {p.get('fecha_creacion', 'N/A')}")
+                        st.write(f"**Total:** ${safe_numeric_value(p.get('total', 0)):,.0f}")
+                    
+                    st.markdown("---")
                     _show_presupuesto_detail(presupuesto_id=p['id'])
+
             with b4: # BOTÓN ELIMINAR
                 delete_clicked = st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar")
         
@@ -257,8 +284,3 @@ for i, p in enumerate(presupuestos):
                 st.rerun()
             else:
                 st.error("❌ No se pudo eliminar el presupuesto.")
-        
-        # --- Detalle del Presupuesto ---
-        if st.session_state.get(state_key, False):
-            with st.expander(f"Detalle Presupuesto ID: {p['id']}", expanded=True):
-                _show_presupuesto_detail(presupuesto_id=p['id'])
