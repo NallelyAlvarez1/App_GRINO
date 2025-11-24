@@ -253,6 +253,7 @@ def get_presupuestos_por_cliente(cliente_id: int) -> list[dict]:
     except Exception as e:
         print(f"Error al obtener presupuestos del cliente {cliente_id}: {e}")
         return []
+
 def get_presupuestos_por_lugar(lugar_id: int) -> list[dict]:
     """
     Devuelve una lista de presupuestos asociados a un lugar de trabajo.
@@ -580,62 +581,23 @@ def save_edited_presupuesto(
     lugar_trabajo_id: int,
     descripcion: str,
     items_data: Dict[str, Any],
-    total_general: float,
-    presupuesto_original_id: int = None  # NUEVO PARÁMETRO
+    total_general: float
 ) -> Optional[int]:
     """
-    Crea un NUEVO presupuesto a partir de datos editados, con control de versiones en 'notas'.
+    Crea un NUEVO presupuesto a partir de datos editados.
     """
     supabase = get_supabase_client()
 
     try:
-        # --- DETERMINAR VERSIÓN USANDO LA COLUMNA 'notas' ---
-        notas_con_version = ""  # Empezamos vacío
-        
-        if presupuesto_original_id:
-            # Buscar el presupuesto original para ver su versión
-            response_original = supabase.table('presupuestos')\
-                .select('notas')\
-                .eq('id', presupuesto_original_id)\
-                .execute()
-            
-            if response_original.data:
-                notas_original = response_original.data[0].get('notas', '')
-                
-                if 'V' in notas_original:
-                    # Extraer la versión actual y incrementar
-                    import re
-                    match = re.search(r'V(\d+)', notas_original)
-                    if match:
-                        version_actual = int(match.group(1))
-                        nueva_version = version_actual + 1
-                        # Reemplazar la versión anterior
-                        notas_con_version = re.sub(r'V\d+', f'V{nueva_version}', notas_original)
-                    else:
-                        # Si tiene 'V' pero no número, agregar V2
-                        notas_con_version = f"{notas_original} | V2"
-                else:
-                    # Es la primera edición (V2)
-                    if notas_original:
-                        notas_con_version = f"{notas_original} | V2"
-                    else:
-                        notas_con_version = "V2"
-            else:
-                # No se encontró el original, empezar con V2
-                notas_con_version = "V2"
-        else:
-            # Es un presupuesto completamente nuevo (V1)
-            notas_con_version = "V1"
-
         # --- FASE 1: Crear NUEVO registro en presupuestos ---
         nuevo_presupuesto_data = {
             'cliente_id': cliente_id,
             'lugar_trabajo_id': lugar_trabajo_id,
-            'descripcion': descripcion,  # Descripción original siempre
-            'notas': notas_con_version,  # Control de versiones aquí
+            'descripcion': descripcion,
+            'notas': "Presupuesto editado",  # Nota simple
             'total': float(total_general),
-            'creado_por': user_id,
-            'presupuesto_original_id': presupuesto_original_id  # Relacionar con el original
+            'creado_por': user_id
+            # Eliminamos 'presupuesto_original_id'
         }
         
         response_presupuesto = supabase.table('presupuestos').insert(nuevo_presupuesto_data).execute()
