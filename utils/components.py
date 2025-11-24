@@ -198,101 +198,64 @@ def show_cliente_lugar_selector(user_id: str) -> Tuple[Optional[int], str, Optio
     
     return cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion
 
-def show_cliente_lugar_selector_edicion(user_id: str, cliente_inicial_id: int = None, 
-                                      lugar_inicial_id: int = None, descripcion_inicial: str = ""):
-    """
-    Selector de cliente y lugar para edición - CORREGIDO sin st.modal
-    """
-    import streamlit as st
-    from utils.db import get_clientes, get_lugares_trabajo, crear_cliente, crear_lugar_trabajo
+def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str, 
+                            btn_nuevo: str, modal_title: str, placeholder_nombre: str,
+                            funcion_creacion: Callable, user_id: str, 
+                            valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
+    """Selector de entidad para edición con valor pre-seleccionado"""
     
-    # Obtener listas actuales
-    clientes = get_clientes(user_id)
-    lugares = get_lugares_trabajo(user_id)
+    # Crear opciones para el selectbox incluyendo el valor actual
+    opciones = [(None, f"Seleccionar {label}")]
+    opciones.extend(datos)
     
-    col1, col2, col3 = st.columns(3)
+    # Encontrar el índice del valor actual en las opciones
+    indice_actual = 0  # Por defecto "Seleccionar"
+    for i, (id_val, nombre) in enumerate(opciones):
+        if id_val == valor_actual:
+            indice_actual = i
+            break
     
-    with col1:
-        st.subheader("👤 Cliente")
-        
-        # Selector de cliente existente
-        cliente_opciones = ["Seleccionar cliente"] + [nombre for _, nombre in clientes]
-        cliente_ids = [None] + [id for id, _ in clientes]
-        
-        cliente_index = 0
-        if cliente_inicial_id and cliente_inicial_id in cliente_ids:
-            cliente_index = cliente_ids.index(cliente_inicial_id)
-        
-        cliente_seleccionado_nombre = st.selectbox(
-            "Cliente:",
-            options=cliente_opciones,
-            index=cliente_index,
-            key="cliente_select_edicion"
-        )
-        
-        cliente_id_actual = cliente_ids[cliente_opciones.index(cliente_seleccionado_nombre)] if cliente_seleccionado_nombre != "Seleccionar cliente" else None
-        
-        # REEMPLAZAR MODAL CON POPOVER O EXPANDER
-        with st.popover("➕ Crear nuevo cliente"):  # Cambia st.modal por st.popover
-            st.write("**Nuevo Cliente**")
-            nuevo_cliente_nombre = st.text_input("Nombre del cliente:", key="nuevo_cliente_edicion")
-            if st.button("Guardar", key="guardar_cliente_nuevo"):
-                if nuevo_cliente_nombre:
-                    created = crear_cliente(user_id, nuevo_cliente_nombre)  # Asegúrate que se llame 'crear_cliente' no 'create_cliente'
-                    if created:
-                        st.success(f"Cliente '{nuevo_cliente_nombre}' creado")
-                        st.rerun()
-                else:
-                    st.error("Ingresa un nombre para el cliente")
+    # Selector con valor pre-seleccionado
+    seleccion = st.selectbox(
+        f"Seleccionar {label}",
+        options=range(len(opciones)),
+        format_func=lambda x: opciones[x][1] if opciones[x][0] is not None else f"Seleccionar {label}",
+        index=indice_actual,
+        key=f"{key}_select_{key}"
+    )
     
-    with col2:
-        st.subheader("📍 Lugar de Trabajo")
-        
-        # Selector de lugar existente
-        lugar_opciones = ["Seleccionar lugar"] + [nombre for _, nombre in lugares]
-        lugar_ids = [None] + [id for id, _ in lugares]
-        
-        lugar_index = 0
-        if lugar_inicial_id and lugar_inicial_id in lugar_ids:
-            lugar_index = lugar_ids.index(lugar_inicial_id)
-        
-        lugar_seleccionado_nombre = st.selectbox(
-            "Lugar de trabajo:",
-            options=lugar_opciones,
-            index=lugar_index,
-            key="lugar_select_edicion"
-        )
-        
-        lugar_id_actual = lugar_ids[lugar_opciones.index(lugar_seleccionado_nombre)] if lugar_seleccionado_nombre != "Seleccionar lugar" else None
-        
-        # REEMPLAZAR MODAL CON POPOVER O EXPANDER
-        with st.popover("➕ Crear nuevo lugar"):  # Cambia st.modal por st.popover
-            st.write("**Nuevo Lugar de Trabajo**")
-            nuevo_lugar_nombre = st.text_input("Nombre del lugar:", key="nuevo_lugar_edicion")
-            if st.button("Guardar", key="guardar_lugar_nuevo"):
-                if nuevo_lugar_nombre:
-                    created = crear_lugar_trabajo(user_id, nuevo_lugar_nombre)
-                    if created:
-                        st.success(f"Lugar '{nuevo_lugar_nombre}' creado")
-                        st.rerun()
-                else:
-                    st.error("Ingresa un nombre para el lugar")
+    entidad_id = opciones[seleccion][0]
     
-    with col3:
-        st.subheader("📝 Descripción")
-        descripcion_actual = st.text_area(
-            "Descripción del trabajo:",
-            value=descripcion_inicial,
-            placeholder="Describa el trabajo a realizar...",
-            key="descripcion_edicion",
-            height=100
-        )
+    # Botón para crear nueva entidad
+    if st.button(btn_nuevo, key=f"{key}_btn_{key}"):
+        st.session_state[f"modal_{key}"] = True
     
-    # Obtener nombres para retornar
-    cliente_nombre_actual = cliente_seleccionado_nombre if cliente_seleccionado_nombre != "Seleccionar cliente" else ""
-    lugar_nombre_actual = lugar_seleccionado_nombre if lugar_seleccionado_nombre != "Seleccionar lugar" else ""
+    # Modal para crear nueva entidad
+    if st.session_state.get(f"modal_{key}"):
+        with st.form(f"form_nuevo_{key}", clear_on_submit=True):
+            st.subheader(modal_title)
+            nuevo_nombre = st.text_input("Nombre", placeholder=placeholder_nombre)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.form_submit_button("Guardar"):
+                    if nuevo_nombre:
+                        try:
+                            nuevo_id = funcion_creacion(user_id, nuevo_nombre)
+                            st.success(f"✅ {label.capitalize()} creado exitosamente")
+                            st.session_state[f"modal_{key}"] = False
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error creando {label}: {e}")
+                    else:
+                        st.error("⚠️ El nombre no puede estar vacío")
+            
+            with col2:
+                if st.form_submit_button("Cancelar"):
+                    st.session_state[f"modal_{key}"] = False
+                    st.rerun()
     
-    return cliente_id_actual, cliente_nombre_actual, lugar_id_actual, lugar_nombre_actual, descripcion_actual
+    return entidad_id
 # ==================== SECCIÓN ITEMS Y CATEGORÍAS ====================
 def selector_categoria(user_id: str, mostrar_label: bool = True, requerido: bool = True, key_suffix: str = "", mostrar_boton_externo: bool = False) -> Tuple[Optional[int], Optional[str], bool]:
     """
