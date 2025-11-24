@@ -479,7 +479,8 @@ def _show_presupuesto_detail(presupuesto_id: int):
                     "total": st.column_config.NumberColumn("Total Ítem", format="$%.2f"),
                 },
                 hide_index=True,
-                disabled=True 
+                disabled=True,
+                key=f"data_editor_unique_{presupuesto_id}" 
             )
         else:
             st.info("Este presupuesto no tiene ítems.")
