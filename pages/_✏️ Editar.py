@@ -381,21 +381,36 @@ except Exception as e:
     st.error(f"Error cargando clientes/lugares: {e}")
     st.exception(e)
     st.stop()
-# ----- cliente / lugar / descripcion -----
+
+# Obtener los valores actuales del presupuesto cargado
+cliente_id_actual = st.session_state.get('presupuesto_cliente_id')
+lugar_id_actual = st.session_state.get('presupuesto_lugar_trabajo_id')
+descripcion_actual = st.session_state.get('presupuesto_descripcion', '')
+
+# DEBUG: Mostrar los valores actuales para verificar
+st.write(f"🔍 DEBUG - Cliente ID: {cliente_id_actual}, Lugar ID: {lugar_id_actual}, Descripción: {descripcion_actual}")
 
 cliente_id_actualizado, cliente_nombre_actualizado, \
 lugar_trabajo_id_actualizado, lugar_nombre_actualizado, \
 descripcion_actualizada = show_cliente_lugar_selector_edicion(
     user_id=user_id,
-    cliente_inicial_id=st.session_state.get('presupuesto_cliente_id'),
-    lugar_inicial_id=st.session_state.get('presupuesto_lugar_trabajo_id'),
-    descripcion_inicial=st.session_state.get('presupuesto_descripcion', '')
+    cliente_inicial_id=cliente_id_actual,
+    lugar_inicial_id=lugar_id_actual,
+    descripcion_inicial=descripcion_actual
 )
 
+# Actualizar los valores en session_state si cambiaron
+if cliente_id_actualizado != cliente_id_actual:
+    st.session_state['presupuesto_cliente_id'] = cliente_id_actualizado
+if lugar_trabajo_id_actualizado != lugar_id_actual:
+    st.session_state['presupuesto_lugar_trabajo_id'] = lugar_trabajo_id_actualizado
+if descripcion_actualizada != descripcion_actual:
+    st.session_state['presupuesto_descripcion'] = descripcion_actualizada
+
 # Autoguardado después de cambiar cliente/lugar/descripción
-if any([cliente_id_actualizado != st.session_state.get('presupuesto_cliente_id'),
-        lugar_trabajo_id_actualizado != st.session_state.get('presupuesto_lugar_trabajo_id'),
-        descripcion_actualizada != st.session_state.get('presupuesto_descripcion')]):
+if any([cliente_id_actualizado != cliente_id_actual,
+        lugar_trabajo_id_actualizado != lugar_id_actual,
+        descripcion_actualizada != descripcion_actual]):
     autosave_with_debounce()
 
 col_izq, col_der = st.columns([1.2, 1.5])   
