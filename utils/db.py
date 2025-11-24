@@ -294,8 +294,9 @@ def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
     """
     supabase = get_supabase_client()
     
+    # QUITAR 'version' del SELECT - solo usar 'notas'
     query = supabase.from_('presupuestos').select(
-        'id, total, fecha_creacion, descripcion, notas, '  # INCLUIR 'notas'
+        'id, total, fecha_creacion, descripcion, notas, '  # Solo 'notas', NO 'version'
         'cliente:cliente_id(nombre), '
         'lugar:lugar_trabajo_id(nombre), '
         'items_en_presupuesto(count)'
@@ -321,6 +322,10 @@ def get_presupuestos_usuario(user_id: str, filtros: dict) -> list:
             
             num_items_data = p.pop('items_en_presupuesto')
             p['num_items'] = num_items_data[0]['count'] if num_items_data and num_items_data[0] else 0
+            
+            # ASEGURAR QUE 'notas' TENGA UN VALOR POR DEFECTO SI ES NULL
+            if p.get('notas') is None:
+                p['notas'] = 'V1'  # Valor por defecto
             
             presupuestos_procesados.append(p)
             
