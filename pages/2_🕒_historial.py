@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from utils.auth import check_login, sign_out
 from datetime import datetime, timedelta
@@ -201,8 +202,11 @@ for i, p in enumerate(presupuestos):
                 st.session_state[state_key] = False
 
             with b1: # BOTÓN EDITAR
-                if st.button("✏️", key=f"edit_{p['id']}", help="Editar"):
+                if st.button("✏️ Editar", key=f"edit_{p['id']}", help="Editar este presupuesto", use_container_width=True):
                     st.session_state['presupuesto_a_editar_id'] = p['id'] 
+                    st.session_state['presupuesto_cargado_automaticamente'] = False  # Resetear para carga fresca
+                    st.success(f"🔄 Redirigiendo para editar presupuesto ID: {p['id']}")
+                    time.sleep(1)  # Pequeña pausa para que se vea el mensaje
                     st.switch_page("pages/_✏️ Editar.py")
             
             with b2: # BOTÓN DESCARGA (Placeholder)

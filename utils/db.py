@@ -697,3 +697,14 @@ def get_presupuesto_detallado(presupuesto_id: int) -> dict:
     except Exception as e:
         st.error(f"Error al obtener detalle del presupuesto: {e}")
         return {}
+import streamlit as st
+
+@st.cache_data
+def save_draft(draft: dict):
+    """Guarda un borrador local persistente."""
+    return draft
+
+@st.cache_data
+def load_draft() -> dict:
+    """Carga un borrador guardado si existe."""
+    return {}

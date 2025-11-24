@@ -154,8 +154,8 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
 
                     # CORRECCIÓN: Generar PDF con parámetros correctos
                     pdf_path = generar_pdf(
-                        cliente_nombre=cliente_nombre,    # PARÁMETRO CORREGIDO
-                        lugar_cliente=lugar_nombre,       # PARÁMETRO CORREGIDO
+                        cliente_nombre=cliente_nombre,    
+                        lugar_cliente=lugar_nombre,       
                         categorias=items_data,
                         descripcion=descripcion
                     )

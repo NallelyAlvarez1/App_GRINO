@@ -4,21 +4,26 @@ import streamlit as st
 from datetime import datetime
 import pandas as pd
 import uuid
+import json
+import time
+import re
+import unicodedata
+
+# Auth
+from utils.auth import check_login, sign_out
+# DB / utilidades
 from utils.db import (
     get_supabase_client,
     get_clientes,
     get_lugares_trabajo,
-    get_presupuesto_detallado,  # Mantener por si acaso
-    get_presupuesto_para_editar,  # Nueva función
+    get_presupuesto_detallado,
+    get_presupuesto_para_editar,
     get_presupuestos_para_edicion,
     save_edited_presupuesto
 )
-# Auth
-from utils.auth import check_login, sign_out
-# DB / utilidades
-
 # PDF
 from utils.pdf import generar_pdf
+
 # Componentes
 from utils.components import (
     show_resumen,
@@ -31,12 +36,17 @@ from utils.components import (
     add_item_to_category
 )
 
+# Funciones de utilidad para autoguardado
+from utils.autosave import AutoSaveManager
+from utils.autosave import capture_current_state, restore_draft_state
+
+# Configuración de página y CSS
 st.markdown("""
 <style>
 .stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea{
     margin-bottom: -0.3rem;
     margin-top: -0.4rem;
-            
+}
 /* Reducir espacio en subheaders */
 h2, h3, h4 {
     margin-top: 0.4rem !important;
@@ -44,17 +54,26 @@ h2, h3, h4 {
     padding-top: 0.4rem !important;
     padding-bottom: 0.4rem !important;
 }                
+div.stTextInput, div.stNumberInput, div.stSelectbox, div.stButton {
+    margin-top: -15px !important; 
+    margin-bottom: 1px !important;
+}
+div[data-testid="column"] { padding-top: 2px !important; padding-bottom: 2px !important; }
+div[data-testid="stText"] { margin-bottom: 0px !important; margin-top: 0px !important; }
 </style>
 """, unsafe_allow_html=True)
-import re
-import unicodedata
 
-def limpiar_nombre_archivo(texto: str) -> str:
-    """Convierte un texto en un nombre de archivo seguro."""
-    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
-    texto = texto.lower().strip().replace(" ", "_")
-    texto = re.sub(r"[^a-zA-Z0-9_-]", "", texto)
-    return texto
+st.markdown("""
+<style>
+div.stTextInput, div.stNumberInput, div.stSelectbox, div.stButton {
+    margin-top: -15px !important; 
+    margin-bottom: 1px !important;
+}
+div[data-testid="column"] { padding-top: 2px !important; padding-bottom: 2px !important; }
+div[data-testid="stText"] { margin-bottom: 0px !important; margin-top: 0px !important; }
+</style>
+""", unsafe_allow_html=True)
+
 
 
 st.set_page_config(page_title="Editar", page_icon="🌱", layout="wide")
@@ -82,6 +101,13 @@ HISTORIAL_PAGE = "pages/2_🕒_historial.py"
 
 user_id = st.session_state.get('user_id')
 supabase = get_supabase_client()
+
+# Inicializar autoguardado
+autosave_manager = AutoSaveManager(user_id, "draft_edicion_presupuesto")
+
+# Variable para controlar la carga automática desde historial
+if 'presupuesto_cargado_automaticamente' not in st.session_state:
+    st.session_state['presupuesto_cargado_automaticamente'] = False
 
 # ----- utilidades -----
 def get_presupuestos_para_selector(user_id: int) -> List[tuple]:
@@ -123,16 +149,16 @@ def get_presupuestos_para_selector(user_id: int) -> List[tuple]:
 def cargar_presupuesto_en_sesion(presupuesto_id: int) -> bool:
     """Cargar un presupuesto en la sesión para edición"""
     try:
+        # Limpiar estado anterior
+        for key in [EDICION_KEY, 'categorias', 'presupuesto_cliente_id', 'presupuesto_lugar_trabajo_id', 
+                   'presupuesto_descripcion', 'presupuesto_a_editar_id']:
+            st.session_state.pop(key, None)
+
         # Usar la nueva función específica para edición
         detalle = get_presupuesto_para_editar(presupuesto_id)
         if not detalle:
             st.error(f"❌ Error al cargar el detalle del presupuesto ID: {presupuesto_id}")
             return False
-
-        # Limpiar estado anterior
-        for key in [EDICION_KEY, 'categorias', 'presupuesto_cliente_id', 'presupuesto_lugar_trabajo_id', 
-                   'presupuesto_descripcion', 'presupuesto_a_editar_id']:
-            st.session_state.pop(key, None)
 
         # estructura base
         st.session_state[EDICION_KEY] = {'general': {'items': [], 'mano_obra': 0.0}}
@@ -183,7 +209,9 @@ def cargar_presupuesto_en_sesion(presupuesto_id: int) -> bool:
         st.session_state['categorias'] = st.session_state[EDICION_KEY]
         ensure_ids_and_positions(st.session_state['categorias'])
         
-        st.success(f"✅ Presupuesto {presupuesto_id} cargado correctamente")
+        # Marcar como cargado automáticamente si viene del historial
+        st.session_state['presupuesto_cargado_automaticamente'] = True
+        
         return True
         
     except Exception as e:
@@ -211,17 +239,46 @@ def clean_price_input(text: str) -> float:
         except Exception:
             return 0.0
 
-# ----- CSS compacto -----
-st.markdown("""
-<style>
-div.stTextInput, div.stNumberInput, div.stSelectbox, div.stButton {
-    margin-top: -15px !important; 
-    margin-bottom: 1px !important;
-}
-div[data-testid="column"] { padding-top: 2px !important; padding-bottom: 2px !important; }
-div[data-testid="stText"] { margin-bottom: 0px !important; margin-top: 0px !important; }
-</style>
-""", unsafe_allow_html=True)
+def limpiar_nombre_archivo(texto: str) -> str:
+    """Convierte un texto en un nombre de archivo seguro."""
+    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    texto = texto.lower().strip().replace(" ", "_")
+    texto = re.sub(r"[^a-zA-Z0-9_-]", "", texto)
+    return texto
+
+def autosave_with_debounce():
+    """Autoguardado con control de frecuencia"""
+    current_time = time.time()
+    last_save = getattr(st.session_state, '_last_autosave', 0)
+    
+    # Guardar máximo cada 30 segundos
+    if current_time - last_save > 30:
+        current_state = capture_current_state()
+        if autosave_manager.save_draft(current_state):
+            st.session_state._last_autosave = current_time
+            st.toast("💾 Guardado automáticamente", icon="💾")
+
+# ----- VERIFICAR BORRADOR AL INICIAR -----
+if autosave_manager.has_draft() and 'categorias' not in st.session_state:
+    draft = autosave_manager.load_draft()
+    if draft:
+        draft_age = autosave_manager.get_draft_age()
+        
+        st.warning(f"📝 Se encontró un borrador guardado {draft_age}")
+        
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            if st.button("🔄 Cargar Borrador", use_container_width=True, key="load_draft"):
+                restore_draft_state(draft)
+                st.rerun()
+        with col2:
+            if st.button("👀 Ver Vista Previa", use_container_width=True, key="preview_draft"):
+                with st.expander("Vista previa del borrador", expanded=True):
+                    st.json(draft)
+        with col3:
+            if st.button("🗑️ Descartar", use_container_width=True, key="discard_draft"):
+                autosave_manager.clear_draft()
+                st.rerun()
 
 # ----- SELECTOR DE PRESUPUESTO -----
 st.subheader("📋 Seleccionar Presupuesto para Editar")
@@ -234,22 +291,64 @@ if not presupuestos_opciones:
     st.page_link("App_principal.py", label="Crear un nuevo presupuesto")
     st.stop()
 
+# VERIFICAR SI VIENE DEL HISTORIAL CON UN PRESUPUESTO ESPECÍFICO
+presupuesto_id_from_history = st.session_state.get('presupuesto_a_editar_id')
+
+# Si viene del historial y aún no está cargado, cargarlo automáticamente
+if (presupuesto_id_from_history and 
+    'categorias' not in st.session_state and 
+    not st.session_state.get('presupuesto_cargado_automaticamente')):
+    
+    # Encontrar la etiqueta correspondiente al ID
+    presupuesto_label_from_history = None
+    for pid, label in presupuestos_opciones:
+        if pid == presupuesto_id_from_history:
+            presupuesto_label_from_history = label
+            break
+    
+    if presupuesto_label_from_history:
+        with st.spinner("🔄 Cargando presupuesto desde historial..."):
+            if cargar_presupuesto_en_sesion(presupuesto_id_from_history):
+                st.session_state['presupuesto_cargado_automaticamente'] = True
+                st.success(f"✅ Presupuesto ID {presupuesto_id_from_history} cargado desde historial")
+                st.rerun()
+            else:
+                st.error("❌ Error al cargar el presupuesto desde historial")
+                # Limpiar el estado para evitar intentos repetidos
+                st.session_state.pop('presupuesto_a_editar_id', None)
+
 # Crear selector
 opciones_dict = {label: pid for pid, label in presupuestos_opciones}
+
+# Si ya hay un presupuesto cargado, seleccionarlo en el dropdown
+presupuesto_actual_id = st.session_state.get('presupuesto_a_editar_id')
+presupuesto_seleccionado_label = None
+
+if presupuesto_actual_id:
+    # Encontrar la etiqueta del presupuesto actual
+    for label, pid in opciones_dict.items():
+        if pid == presupuesto_actual_id:
+            presupuesto_seleccionado_label = label
+            break
+
 presupuesto_seleccionado_label = st.selectbox(
     "Selecciona el presupuesto a editar:",
     options=list(opciones_dict.keys()),
-    index=0,
+    index=list(opciones_dict.keys()).index(presupuesto_seleccionado_label) if presupuesto_seleccionado_label else 0,
     key="selector_presupuesto"
 )
 
 # Botón para cargar el presupuesto seleccionado
 col1, col2 = st.columns([1, 3])
 with col1:
-    if st.button("🔄 Cargar Presupuesto", type="primary", use_container_width=True):
+    if st.button("🔄 Cargar Presupuesto", type="primary", use_container_width=True, key="load_budget"):
         presupuesto_id = opciones_dict[presupuesto_seleccionado_label]
         with st.spinner("Cargando presupuesto..."):
             if cargar_presupuesto_en_sesion(presupuesto_id):
+                # Limpiar borrador anterior al cargar uno nuevo
+                if 'autosave_manager' in locals():
+                    autosave_manager.clear_draft()
+                st.session_state['presupuesto_cargado_automaticamente'] = True
                 st.success(f"✅ Presupuesto ID {presupuesto_id} cargado correctamente")
                 st.rerun()
             else:
@@ -265,7 +364,6 @@ presupuesto_id = st.session_state.get('presupuesto_a_editar_id')
 if not presupuesto_id:
     st.info("👆 Selecciona un presupuesto y haz clic en 'Cargar Presupuesto' para comenzar a editar.")
     st.stop()
-
 
 # ----- VERIFICAR DATOS CARGADOS -----
 if 'categorias' not in st.session_state or not st.session_state['categorias']:
@@ -294,12 +392,13 @@ descripcion_actualizada = show_cliente_lugar_selector_edicion(
     descripcion_inicial=st.session_state.get('presupuesto_descripcion', '')
 )
 
+# Autoguardado después de cambiar cliente/lugar/descripción
+if any([cliente_id_actualizado != st.session_state.get('presupuesto_cliente_id'),
+        lugar_trabajo_id_actualizado != st.session_state.get('presupuesto_lugar_trabajo_id'),
+        descripcion_actualizada != st.session_state.get('presupuesto_descripcion')]):
+    autosave_with_debounce()
 
-# ================================
-#   NUEVO ORDEN — DOS COLUMNAS
-# ================================
-
-col_izq, col_der = st.columns([1.2, 1.5])   # Ajusta proporciones si quieres
+col_izq, col_der = st.columns([1.2, 1.5])   
 
 # --------------------------------
 #  COLUMNA IZQUIERDA
@@ -307,7 +406,7 @@ col_izq, col_der = st.columns([1.2, 1.5])   # Ajusta proporciones si quieres
 with col_izq:
     st.subheader("📦 Agregar Ítem Nuevo")
 
-    if st.button("➕Nueva Categoría", key="btn_nueva_categoria"):
+    if st.button("➕ Nueva Categoría", key="btn_nueva_categoria"):
         st.session_state["mostrar_nueva_categoria_manual"] = True
 
     if st.session_state.get("mostrar_nueva_categoria_manual", False):
@@ -321,6 +420,7 @@ with col_izq:
                         st.session_state["categorias"][nueva_categoria_nombre] = {"items": [], "mano_obra": 0.0}
                     st.success("Categoría creada.")
                     st.session_state["mostrar_nueva_categoria_manual"] = False
+                    autosave_with_debounce()
                     st.rerun()
                 else:
                     st.warning("Ingresa un nombre.")
@@ -328,8 +428,6 @@ with col_izq:
             if st.button("Cancelar", key="cancelar_categoria_manual"):
                 st.session_state["mostrar_nueva_categoria_manual"] = False
                 st.rerun()
-
-
 
     categorias_existentes = list(st.session_state["categorias"].keys())
     categoria_sel = st.selectbox("Categoría", ["(Seleccione)"] + categorias_existentes, key="cat_item_nuevo")
@@ -398,11 +496,37 @@ st.subheader("🛠️ Edición Avanzada")
 st.subheader("📋 Ítems del Presupuesto (Editable)")
 items_data = show_edited_presupuesto(user_id, is_editing=True, persist_db=False)
 
-
+# Autoguardado después de edición avanzada
+if st.session_state.get('_items_modified', False):
+    autosave_with_debounce()
+    st.session_state['_items_modified'] = False
 
 st.markdown("---")
 st.markdown(f"### 💰 Total a Guardar: **${total_general_actualizado:,.0f}**")
 
+# Panel de control de autoguardado en sidebar
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("**💾 Autoguardado**")
+    
+    if autosave_manager.has_draft():
+        draft_age = autosave_manager.get_draft_age()
+        st.caption(f"Último guardado: {draft_age}")
+        
+        col_save, col_clear = st.columns(2)
+        with col_save:
+            if st.button("💾 Guardar", key="manual_save", use_container_width=True):
+                current_state = capture_current_state()
+                if autosave_manager.save_draft(current_state):
+                    st.toast("✅ Borrador guardado manualmente")
+        with col_clear:
+            if st.button("🗑️ Limpiar", key="clear_draft", use_container_width=True):
+                autosave_manager.clear_draft()
+                st.rerun()
+    else:
+        st.caption("No hay borradores guardados")
+
+# BOTÓN FINAL DE GUARDADO
 if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary", key="guardar_edicion_final"):
     try:
         st.toast("Guardando cambios...", icon="💾")
@@ -416,19 +540,17 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
             st.error("❌ Debes seleccionar cliente y lugar de trabajo antes de guardar.")
             st.stop()
 
-        # items_data ES EXACTAMENTE LA MISMA ESTRUCTURA QUE YA USAS EN save_presupuesto_completo
         items_data = categorias  
         total_general = calcular_total_edicion(categorias)
 
-        # LLAMADA CORREGIDA ⬇
+        # LLAMADA CORREGIDA
         nuevo_id = save_edited_presupuesto(
             user_id=user_id,
             cliente_id=cliente_id_actualizado,
             lugar_trabajo_id=lugar_trabajo_id_actualizado,
             descripcion=descripcion_actualizada,
-            items_data=items_data,     # ← NOMBRE CORRECTO
+            items_data=items_data,
             total_general=total_general
-
         )
 
         if not nuevo_id:
@@ -452,6 +574,9 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
         except:
             pass
 
+        # Limpiar borrador después de guardado exitoso
+        autosave_manager.clear_draft()
+
         # ⬅ NOMBRE DEL ARCHIVO BASADO EN LUGAR
         lugar_limpio = limpiar_nombre_archivo(lugar_nombre_actualizado)
         nombre_archivo = f"presupuesto_{lugar_limpio}.pdf"
@@ -464,7 +589,7 @@ if st.button("💾 Guardar como Nuevo Presupuesto y Generar PDF", type="primary"
             use_container_width=True
         )
 
-
+        st.success(f"✅ Presupuesto guardado exitosamente (ID: {nuevo_id})")
         st.page_link(HISTORIAL_PAGE, label="📚 Ver Historial", use_container_width=True)
 
     except Exception as e:
