@@ -237,85 +237,28 @@ for i, p in enumerate(presupuestos):
                 else:
                     st.button("🚫", key=f"down_{p['id']}_disabled", disabled=True, help="PDF no disponible")
             
-            with b3: # BOTÓN VISTA PREVIA (MODAL)
-                modal_key = f"modal_{p['id']}"
-                if st.button("👁️", key=f"view_{p['id']}", help="Vista Previa Rápida", use_container_width=True):
-                    st.session_state[modal_key] = True
-                
-                # Modal para vista previa
-                if st.session_state.get(modal_key, False):
-                    with st.container():
-                        st.markdown(
-                            f"""
-                            <style>
-                            .modal {{
-                                position: fixed;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                                background: white;
-                                padding: 20px;
-                                border-radius: 10px;
-                                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                                z-index: 1000;
-                                max-width: 90%;
-                                max-height: 80vh;
-                                overflow-y: auto;
-                                border: 2px solid #0d6efd;
-                            }}
-                            .modal-backdrop {{
-                                position: fixed;
-                                top: 0;
-                                left: 0;
-                                width: 100%;
-                                height: 100%;
-                                background: rgba(0,0,0,0.5);
-                                z-index: 999;
-                            }}
-                            .modal-close {{
-                                position: absolute;
-                                top: 10px;
-                                right: 15px;
-                                background: #dc3545;
-                                color: white;
-                                border: none;
-                                border-radius: 50%;
-                                width: 30px;
-                                height: 30px;
-                                cursor: pointer;
-                                font-weight: bold;
-                            }}
-                            </style>
-                            <div class="modal-backdrop" onclick="this.parentElement.style.display='none'">
-                                <div class="modal" onclick="event.stopPropagation()">
-                                    <button class="modal-close" onclick="this.parentElement.parentElement.style.display='none'">×</button>
-                                    <h3>👁️ Vista Previa - Presupuesto ID: {p['id']}</h3>
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        
-                        # Contenido del modal
-                        _show_presupuesto_detail(presupuesto_id=p['id'])
-                        
-                        # Botón de cierre adicional
-                        if st.button("❌ Cerrar Vista Previa", key=f"close_modal_{p['id']}"):
-                            st.session_state[modal_key] = False
-                            st.rerun()
-
+            with b3: # BOTÓN VISTA PREVIA (POPOVER)
+                with st.popover("👁️ Vista Previa", use_container_width=True):
+                    st.write(f"### 📋 Presupuesto ID: {p['id']}")
+                    _show_presupuesto_detail(presupuesto_id=p['id'])
             with b4: # BOTÓN ELIMINAR
                 delete_clicked = st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar")
         
-        # --- Mensaje de eliminación ---
+        # --- Mensaje de eliminación FUERA de col7 pero DENTRO del container ---
         if 'delete_success' in st.session_state and st.session_state['delete_success'] == p['id']:
             st.success("✅ Presupuesto eliminado correctamente")
+            # Limpiar el estado después de mostrar el mensaje
             del st.session_state['delete_success']
         
-        # Lógica de eliminación
+        # Lógica de eliminación separada
         if delete_clicked:
             if delete_presupuesto(p['id'], user_id):
                 st.session_state['delete_success'] = p['id']
                 st.rerun()
             else:
                 st.error("❌ No se pudo eliminar el presupuesto.")
+        
+        # --- Detalle del Presupuesto ---
+        if st.session_state.get(state_key, False):
+            with st.expander(f"Detalle Presupuesto ID: {p['id']}", expanded=True):
+                _show_presupuesto_detail(presupuesto_id=p['id'])
