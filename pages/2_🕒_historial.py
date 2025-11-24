@@ -158,23 +158,24 @@ with col3:
 
 st.subheader("📋 Lista de Presupuestos")
 
-# Encabezado tipo tabla
+# Encabezado tipo tabla - MODIFICADO: Agregar columna Descripción
 with st.container():
-    col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 2, 1, 3])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 2, 1, 3])  # 7 columnas ahora
     col1.markdown("**Cliente**")
     col2.markdown("**Lugar**")
-    col3.markdown("**Fecha**")
-    col4.markdown("**Total**")
-    col5.markdown("**Ítems**")
-    col6.markdown("**Acciones**")
+    col3.markdown("**Descripción**")  # NUEVA COLUMNA
+    col4.markdown("**Fecha**")
+    col5.markdown("**Total**")
+    col6.markdown("**Ítems**")
+    col7.markdown("**Acciones**")
 
-# Filas tipo tabla
+# Filas tipo tabla - MODIFICADO: Agregar columna Descripción
 for i, p in enumerate(presupuestos):
     
     total_display = safe_numeric_value(p.get('total', 0))
     
     with st.container(border=True):
-        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 2, 1, 3])
+        col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 2, 1, 3])  # 7 columnas ahora
 
         # --- Datos de la Fila ---
         cliente_nombre = p.get('cliente', {}).get('nombre', 'N/A')
@@ -182,19 +183,28 @@ for i, p in enumerate(presupuestos):
             
         lugar_nombre = p.get('lugar', {}).get('nombre', 'N/A')
         col2.write(lugar_nombre.title() if lugar_nombre else 'N/A')
+        
+        # NUEVA COLUMNA: Descripción
+        descripcion = p.get('descripcion', 'Sin descripción')
+        # Mostrar texto truncado si es muy largo, con tooltip completo
+        if descripcion and len(descripcion) > 30:
+            col3.write(descripcion[:30] + "...")
+            col3.caption(descripcion)  # Tooltip con descripción completa
+        else:
+            col3.write(descripcion if descripcion else 'Sin descripción')
             
         fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
         try:
             fecha_dt = datetime.fromisoformat(fecha_str.replace('Z', '+00:00')) # Manejo de formato ISO
-            col3.write(fecha_dt.strftime('%Y-%m-%d'))
+            col4.write(fecha_dt.strftime('%Y-%m-%d'))
         except Exception:
-            col3.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
+            col4.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
             
-        col4.write(f"**${total_display:,.2f}**")
-        col5.write(str(p.get('num_items', 0)))
+        col5.write(f"**${total_display:,.2f}**")
+        col6.write(str(p.get('num_items', 0)))
 
         # --- Botones de Acción ---
-        with col6:
+        with col7:
             b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
             
             state_key = f"expander_toggle_{p['id']}"
@@ -209,7 +219,7 @@ for i, p in enumerate(presupuestos):
                     time.sleep(1)  # Pequeña pausa para que se vea el mensaje
                     st.switch_page("pages/_✏️ Editar.py")
             
-            with b2: # BOTÓN DESCARGA (Placeholder)
+            with b2:
                 pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
                 if success and pdf_bytes:
                     st.download_button(
@@ -229,21 +239,22 @@ for i, p in enumerate(presupuestos):
                     st.rerun()
 
             with b4: # BOTÓN ELIMINAR
-
                 delete_clicked = st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar")
         
-        # --- Mensaje de eliminación FUERA de col6 pero DENTRO del container ---
+        # --- Mensaje de eliminación FUERA de col7 pero DENTRO del container ---
         if 'delete_success' in st.session_state and st.session_state['delete_success'] == p['id']:
             st.success("✅ Presupuesto eliminado correctamente")
             # Limpiar el estado después de mostrar el mensaje
             del st.session_state['delete_success']
-                # Lógica de eliminación separada
+        
+        # Lógica de eliminación separada
         if delete_clicked:
             if delete_presupuesto(p['id'], user_id):
                 st.session_state['delete_success'] = p['id']
                 st.rerun()
             else:
                 st.error("❌ No se pudo eliminar el presupuesto.")
+        
         # --- Detalle del Presupuesto ---
         if st.session_state.get(state_key, False):
             with st.expander(f"Detalle Presupuesto ID: {p['id']}", expanded=True):
