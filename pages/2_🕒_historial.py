@@ -160,11 +160,11 @@ st.subheader("📋 Lista de Presupuestos")
 
 # Encabezado tipo tabla - MODIFICADO: Agregar columna Descripción
 with st.container():
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2, 2, 1, 2, 2, 1, 3.5])
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
     col1.markdown("**Cliente**")
     col2.markdown("**Lugar**")
     col3.markdown("**Descripción**")
-    col4.markdown("**Versión**")  # NUEVA COLUMNA
+    col4.markdown("**Ver.**")  # NUEVA COLUMNA
     col5.markdown("**Fecha**")
     col6.markdown("**Total**")
     col7.markdown("**Ítems**")
@@ -173,7 +173,7 @@ with st.container():
 # Filas tipo tabla - MODIFICADO: Agregar columna Descripción
 for i, p in enumerate(presupuestos):
     with st.container(border=True):
-        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2, 2, 1, 2, 2, 1, 3.5])
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
     
         total_display = safe_numeric_value(p.get('total', 0))
 
