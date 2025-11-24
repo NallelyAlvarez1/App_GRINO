@@ -400,7 +400,6 @@ def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: b
                 st.rerun()
 
     return st.session_state['categorias']
-
 def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = False) -> Dict[str, Any]:
     """
     Editor avanzado (Opción A) - CORREGIDO
@@ -457,6 +456,10 @@ def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: 
                 elif st.session_state[name_key] != nombre_valor and nombre_valor:
                     st.session_state[name_key] = nombre_valor
 
+                # Asegurar que el item tenga el campo 'nombre' (REQUERIDO PARA LA BD)
+                if 'nombre' not in item or not item['nombre']:
+                    item['nombre'] = nombre_valor  # Usar el valor existente como nombre por defecto
+
                 # Unidad - INICIALIZACIÓN MEJORADA
                 unidad_key = f"unidad_{unique_suffix}"
                 unidad_valor = item.get('unidad', 'Unidad')
@@ -499,8 +502,16 @@ def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: 
                 if new_name != st.session_state[name_key]:
                     st.session_state[name_key] = new_name
                     item['nombre_personalizado'] = new_name
+                    # Asegurar que también se actualice el campo 'nombre' requerido
+                    item['nombre'] = new_name
                     if persist_db:
                         _call_db_upsert(item)
+
+                # Si después de la edición todavía no hay nombre, establecer uno por defecto
+                if not item.get('nombre') and new_name:
+                    item['nombre'] = new_name
+                elif not item.get('nombre'):
+                    item['nombre'] = "Ítem sin nombre"  # Valor por defecto
 
                 if item.get('tipo', 'normal') != 'trabajo_simple':
                     # UNIDAD
