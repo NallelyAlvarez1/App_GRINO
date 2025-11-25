@@ -104,16 +104,8 @@ supabase = get_supabase_client()
 
 # Inicializar autoguardado
 autosave_manager = AutoSaveManager(user_id, "draft_edicion_presupuesto")
-# Inicializar estados de modales si no existen
-modal_states = [
-    "modal_cliente_edicion_open", "modal_cliente_edicion_error",
-    "modal_lugar_edicion_open", "modal_lugar_edicion_error"
-]
 
-for state in modal_states:
-    if state not in st.session_state:
-        st.session_state[state] = None if "error" in state else False
-        
+
 # Variable para controlar la carga automática desde historial
 if 'presupuesto_cargado_automaticamente' not in st.session_state:
     st.session_state['presupuesto_cargado_automaticamente'] = False
@@ -383,9 +375,20 @@ if 'categorias' not in st.session_state or not st.session_state['categorias']:
     st.stop()
 
 # ----- cliente / lugar / descripcion -----
+# ----- cliente / lugar / descripcion -----
+
+# Verificar si necesitamos recargar los datos
+force_reload = st.session_state.get('force_reload_cliente_edicion') or st.session_state.get('force_reload_lugar_edicion')
+
 try:
     clientes = get_clientes(user_id)
     lugares = get_lugares_trabajo(user_id)
+    
+    # Limpiar flags de recarga
+    if force_reload:
+        st.session_state.pop('force_reload_cliente_edicion', None)
+        st.session_state.pop('force_reload_lugar_edicion', None)
+        
 except Exception as e:
     st.error(f"Error cargando clientes/lugares: {e}")
     st.exception(e)
@@ -396,10 +399,7 @@ cliente_id_actual = st.session_state.get('presupuesto_cliente_id')
 lugar_id_actual = st.session_state.get('presupuesto_lugar_trabajo_id')
 descripcion_actual = st.session_state.get('presupuesto_descripcion', '')
 
-# DEBUG: Mostrar los valores actuales para verificar
-st.write(f"🔍 DEBUG - Cliente ID: {cliente_id_actual}, Lugar ID: {lugar_id_actual}, Descripción: {descripcion_actual}")
-
-# Llamar a la función con parámetros individuales (versión corregida)
+# Llamar a la función CORREGIDA
 cliente_id_actualizado, cliente_nombre_actualizado, \
 lugar_trabajo_id_actualizado, lugar_nombre_actualizado, \
 descripcion_actualizada = show_cliente_lugar_selector_edicion(

@@ -246,13 +246,14 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
                 if nuevo_nombre and nuevo_nombre.strip():
                     try:
                         # CORRECCIÓN: Invertir el orden de los parámetros
-                        # La función create_cliente espera (nombre, user_id) no (user_id, nombre)
                         nuevo_id = funcion_creacion(nuevo_nombre.strip(), user_id)
                         
                         if nuevo_id:
                             st.success(f"✅ {label.capitalize()} '{nuevo_nombre.strip()}' creado exitosamente")
                             st.session_state[f"modal_{key}_open"] = False
-                            time.sleep(1)
+                            
+                            # FORZAR RECARGA COMPLETA
+                            st.session_state[f"force_reload_{key}"] = True
                             st.rerun()
                         else:
                             st.error(f"❌ No se pudo crear el {label}")
