@@ -291,7 +291,7 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
 
         pdf.set_fill_color(194, 207, 165)
         ANCHO_TOTAL = 40
-        ALTO_TOTAL = 12
+        ALTO_TOTAL = 15
         margen_derecho = 10
         x_inicial = pdf.w - ANCHO_TOTAL - margen_derecho
         y_inicial = pdf.get_y()

@@ -104,7 +104,16 @@ supabase = get_supabase_client()
 
 # Inicializar autoguardado
 autosave_manager = AutoSaveManager(user_id, "draft_edicion_presupuesto")
+# Inicializar estados de modales si no existen
+modal_states = [
+    "modal_cliente_edicion_open", "modal_cliente_edicion_error",
+    "modal_lugar_edicion_open", "modal_lugar_edicion_error"
+]
 
+for state in modal_states:
+    if state not in st.session_state:
+        st.session_state[state] = None if "error" in state else False
+        
 # Variable para controlar la carga automática desde historial
 if 'presupuesto_cargado_automaticamente' not in st.session_state:
     st.session_state['presupuesto_cargado_automaticamente'] = False

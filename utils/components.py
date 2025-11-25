@@ -228,35 +228,50 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
     
     # Botón para crear nueva entidad
     if st.button(btn_nuevo, key=f"{key}_btn_{key}"):
-        st.session_state[f"modal_{key}"] = True
+        st.session_state[f"modal_{key}_open"] = True
+        st.session_state[f"modal_{key}_error"] = None  # Limpiar error anterior
+        st.rerun()
     
     # Modal para crear nueva entidad
-    if st.session_state.get(f"modal_{key}"):
-        with st.form(f"form_nuevo_{key}", clear_on_submit=True):
-            st.subheader(modal_title)
-            nuevo_nombre = st.text_input("Nombre", placeholder=placeholder_nombre)
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.form_submit_button("Guardar"):
-                    if nuevo_nombre:
-                        try:
-                            nuevo_id = funcion_creacion(user_id, nuevo_nombre)
+    if st.session_state.get(f"modal_{key}_open", False):
+        st.markdown("---")
+        st.subheader(modal_title)
+        
+        # Mostrar error si existe
+        error_msg = st.session_state.get(f"modal_{key}_error")
+        if error_msg:
+            st.error(error_msg)
+        
+        nuevo_nombre = st.text_input("Nombre", placeholder=placeholder_nombre, 
+                                   key=f"{key}_nuevo_nombre")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 Guardar", key=f"{key}_guardar", use_container_width=True):
+                if nuevo_nombre and nuevo_nombre.strip():
+                    try:
+                        nuevo_id = funcion_creacion(user_id, nuevo_nombre.strip())
+                        if nuevo_id:
+                            st.session_state[f"modal_{key}_open"] = False
+                            st.session_state[f"modal_{key}_error"] = None
                             st.success(f"✅ {label.capitalize()} creado exitosamente")
-                            st.session_state[f"modal_{key}"] = False
                             st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Error creando {label}: {e}")
-                    else:
-                        st.error("⚠️ El nombre no puede estar vacío")
-            
-            with col2:
-                if st.form_submit_button("Cancelar"):
-                    st.session_state[f"modal_{key}"] = False
+                        else:
+                            st.session_state[f"modal_{key}_error"] = f"Error: No se pudo crear el {label}"
+                    except Exception as e:
+                        st.session_state[f"modal_{key}_error"] = f"❌ Error creando {label}: {str(e)}"
+                        st.rerun()
+                else:
+                    st.session_state[f"modal_{key}_error"] = "⚠️ El nombre no puede estar vacío"
                     st.rerun()
+        
+        with col2:
+            if st.button("❌ Cancelar", key=f"{key}_cancelar", use_container_width=True):
+                st.session_state[f"modal_{key}_open"] = False
+                st.session_state[f"modal_{key}_error"] = None
+                st.rerun()
     
     return entidad_id
-
 def show_cliente_lugar_selector_edicion(
     user_id: str, 
     cliente_inicial_id: Optional[int] = None,

@@ -511,9 +511,7 @@ def get_presupuestos_para_edicion(user_id: str) -> List[Dict]:
             .execute()
         )
         
-        # Depuración: imprimir la respuesta
-        print("Respuesta de Supabase (presupuestos):", response)
-        print("Datos:", response.data)
+
         
         return response.data if response.data else []
     
