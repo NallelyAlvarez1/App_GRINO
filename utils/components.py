@@ -203,70 +203,56 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
                             btn_nuevo: str, modal_title: str, placeholder_nombre: str,
                             funcion_creacion: Callable, user_id: str, 
                             valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
-    """Selector de entidad para edición con valor pre-seleccionado"""
+    """Componente genérico para seleccionar/crear entidades en edición con popover siempre activo."""
+    
+    if not user_id:
+        st.error("❌ Error interno: ID de usuario no disponible.")
+        return None
     
     # Crear opciones para el selectbox incluyendo el valor actual
-    opciones = [(None, f"Seleccionar {label}")]
-    opciones.extend(datos)
+    opciones_display = ["(Seleccione)"] + [nombre for _, nombre in datos]
     
     # Encontrar el índice del valor actual en las opciones
-    indice_actual = 0
-    for i, (id_val, nombre) in enumerate(opciones):
-        if id_val == valor_actual:
-            indice_actual = i
-            break
+    indice_actual = 0  # Por defecto "(Seleccione)"
+    if valor_actual:
+        nombre_actual = next((nombre for id_val, nombre in datos if id_val == valor_actual), None)
+        if nombre_actual and nombre_actual in opciones_display:
+            indice_actual = opciones_display.index(nombre_actual)
     
-    # Selector con valor pre-seleccionado
-    seleccion = st.selectbox(
-        f"Seleccionar {label}",
-        options=range(len(opciones)),
-        format_func=lambda x: opciones[x][1] if opciones[x][0] is not None else f"Seleccionar {label}",
+    # 1. Selector principal con valor pre-seleccionado
+    entidad_nombre_seleccionada = st.selectbox(
+        label=label.capitalize(),
+        options=opciones_display,
         index=indice_actual,
-        key=f"{key}_select_{key}"
+        key=f"{key}_selector_edicion",
+        label_visibility="collapsed",
     )
     
-    entidad_id = opciones[seleccion][0]
+    entidad_id = None
+    if entidad_nombre_seleccionada and entidad_nombre_seleccionada != "(Seleccione)":
+        # Buscar el ID basado en el nombre seleccionado
+        entidad_id = next((id for id, nombre in datos if nombre == entidad_nombre_seleccionada), None)
     
-    # Botón para crear nueva entidad
-    if st.button(btn_nuevo, key=f"{key}_btn_{key}"):
-        st.session_state[f"modal_{key}_open"] = True
-        st.rerun()
-    
-    # Modal para crear nueva entidad
-    if st.session_state.get(f"modal_{key}_open", False):
-        st.markdown("---")
-        st.subheader(modal_title)
+    # 2. Popover SIEMPRE ACTIVO para crear nueva entidad
+    with st.popover(btn_nuevo, use_container_width=True):
+        st.write(f"Crear nuevo {label}")
+        nombre_nuevo = st.text_input(placeholder_nombre, key=f"new_{key}_name_edicion")
         
-        nuevo_nombre = st.text_input("Nombre", placeholder=placeholder_nombre, 
-                                   key=f"{key}_nuevo_nombre")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("💾 Guardar", key=f"{key}_guardar", use_container_width=True):
-                if nuevo_nombre and nuevo_nombre.strip():
-                    try:
-                        # CORRECCIÓN: Invertir el orden de los parámetros
-                        nuevo_id = funcion_creacion(nuevo_nombre.strip(), user_id)
-                        
-                        if nuevo_id:
-                            st.success(f"✅ {label.capitalize()} '{nuevo_nombre.strip()}' creado exitosamente")
-                            st.session_state[f"modal_{key}_open"] = False
-                            
-                            # FORZAR RECARGA COMPLETA
-                            st.session_state[f"force_reload_{key}"] = True
-                            st.rerun()
-                        else:
-                            st.error(f"❌ No se pudo crear el {label}")
-                    except Exception as e:
-                        st.error(f"❌ Error creando {label}: {str(e)}")
-                else:
-                    st.error("⚠️ El nombre no puede estar vacío")
-        
-        with col2:
-            if st.button("❌ Cancelar", key=f"{key}_cancelar", use_container_width=True):
-                st.session_state[f"modal_{key}_open"] = False
-                st.rerun()
-    
+        if st.button("💾 Crear", type="primary", key=f"save_{key}_edicion", use_container_width=True):
+            if nombre_nuevo.strip():
+                try:
+                    new_id = funcion_creacion(nombre=nombre_nuevo.strip(), user_id=user_id)
+                    if new_id:
+                        st.cache_data.clear()
+                        st.toast(f"✅ {label.capitalize()} creado correctamente!", icon="✅")
+                        st.rerun()  # Recargar para que el nuevo item aparezca en la lista
+                    else:
+                        st.error(f"❌ Error al crear {label}")
+                except Exception as e:
+                    st.error(f"❌ Error al crear {label}: {str(e)}")
+            else:
+                st.error(f"⚠️ El nombre de {label} no puede estar vacío.")
+
     return entidad_id
 
 def show_cliente_lugar_selector_edicion(
