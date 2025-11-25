@@ -205,11 +205,6 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
                             valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
     """Selector de entidad para edición con valor pre-seleccionado"""
     
-    # DEBUG: Verificar los parámetros
-    st.sidebar.write(f"🔍 DEBUG {label}:")
-    st.sidebar.write(f"  user_id: {user_id}")
-    st.sidebar.write(f"  tipo user_id: {type(user_id)}")
-    
     # Crear opciones para el selectbox incluyendo el valor actual
     opciones = [(None, f"Seleccionar {label}")]
     opciones.extend(datos)
@@ -250,13 +245,9 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
             if st.button("💾 Guardar", key=f"{key}_guardar", use_container_width=True):
                 if nuevo_nombre and nuevo_nombre.strip():
                     try:
-                        # DEBUG: Mostrar qué se está enviando
-                        st.write(f"🔍 DEBUG llamando a {funcion_creacion.__name__}:")
-                        st.write(f"  user_id: {user_id}")
-                        st.write(f"  nombre: {nuevo_nombre.strip()}")
-                        
-                        # INTENTAR DIFERENTES FORMAS DE LLAMAR LA FUNCIÓN
-                        nuevo_id = funcion_creacion(user_id, nuevo_nombre.strip())
+                        # CORRECCIÓN: Invertir el orden de los parámetros
+                        # La función create_cliente espera (nombre, user_id) no (user_id, nombre)
+                        nuevo_id = funcion_creacion(nuevo_nombre.strip(), user_id)
                         
                         if nuevo_id:
                             st.success(f"✅ {label.capitalize()} '{nuevo_nombre.strip()}' creado exitosamente")
@@ -267,17 +258,6 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
                             st.error(f"❌ No se pudo crear el {label}")
                     except Exception as e:
                         st.error(f"❌ Error creando {label}: {str(e)}")
-                        # Intentar con parámetros invertidos
-                        try:
-                            st.info("🔄 Intentando con parámetros invertidos...")
-                            nuevo_id = funcion_creacion(nuevo_nombre.strip(), user_id)
-                            if nuevo_id:
-                                st.success(f"✅ {label.capitalize()} creado (con parámetros invertidos)")
-                                st.session_state[f"modal_{key}_open"] = False
-                                time.sleep(1)
-                                st.rerun()
-                        except Exception as e2:
-                            st.error(f"❌ También falló con parámetros invertidos: {str(e2)}")
                 else:
                     st.error("⚠️ El nombre no puede estar vacío")
         
