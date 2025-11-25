@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 import pandas as pd
 import uuid
@@ -204,12 +205,17 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
                             valor_actual: Optional[int], nombre_actual: str) -> Optional[int]:
     """Selector de entidad para edición con valor pre-seleccionado"""
     
+    # DEBUG: Verificar los parámetros
+    st.sidebar.write(f"🔍 DEBUG {label}:")
+    st.sidebar.write(f"  user_id: {user_id}")
+    st.sidebar.write(f"  tipo user_id: {type(user_id)}")
+    
     # Crear opciones para el selectbox incluyendo el valor actual
     opciones = [(None, f"Seleccionar {label}")]
     opciones.extend(datos)
     
     # Encontrar el índice del valor actual en las opciones
-    indice_actual = 0  # Por defecto "Seleccionar"
+    indice_actual = 0
     for i, (id_val, nombre) in enumerate(opciones):
         if id_val == valor_actual:
             indice_actual = i
@@ -229,18 +235,12 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
     # Botón para crear nueva entidad
     if st.button(btn_nuevo, key=f"{key}_btn_{key}"):
         st.session_state[f"modal_{key}_open"] = True
-        st.session_state[f"modal_{key}_error"] = None  # Limpiar error anterior
         st.rerun()
     
     # Modal para crear nueva entidad
     if st.session_state.get(f"modal_{key}_open", False):
         st.markdown("---")
         st.subheader(modal_title)
-        
-        # Mostrar error si existe
-        error_msg = st.session_state.get(f"modal_{key}_error")
-        if error_msg:
-            st.error(error_msg)
         
         nuevo_nombre = st.text_input("Nombre", placeholder=placeholder_nombre, 
                                    key=f"{key}_nuevo_nombre")
@@ -250,28 +250,44 @@ def _selector_entidad_edicion(datos: List[Tuple[int, str]], label: str, key: str
             if st.button("💾 Guardar", key=f"{key}_guardar", use_container_width=True):
                 if nuevo_nombre and nuevo_nombre.strip():
                     try:
+                        # DEBUG: Mostrar qué se está enviando
+                        st.write(f"🔍 DEBUG llamando a {funcion_creacion.__name__}:")
+                        st.write(f"  user_id: {user_id}")
+                        st.write(f"  nombre: {nuevo_nombre.strip()}")
+                        
+                        # INTENTAR DIFERENTES FORMAS DE LLAMAR LA FUNCIÓN
                         nuevo_id = funcion_creacion(user_id, nuevo_nombre.strip())
+                        
                         if nuevo_id:
+                            st.success(f"✅ {label.capitalize()} '{nuevo_nombre.strip()}' creado exitosamente")
                             st.session_state[f"modal_{key}_open"] = False
-                            st.session_state[f"modal_{key}_error"] = None
-                            st.success(f"✅ {label.capitalize()} creado exitosamente")
+                            time.sleep(1)
                             st.rerun()
                         else:
-                            st.session_state[f"modal_{key}_error"] = f"Error: No se pudo crear el {label}"
+                            st.error(f"❌ No se pudo crear el {label}")
                     except Exception as e:
-                        st.session_state[f"modal_{key}_error"] = f"❌ Error creando {label}: {str(e)}"
-                        st.rerun()
+                        st.error(f"❌ Error creando {label}: {str(e)}")
+                        # Intentar con parámetros invertidos
+                        try:
+                            st.info("🔄 Intentando con parámetros invertidos...")
+                            nuevo_id = funcion_creacion(nuevo_nombre.strip(), user_id)
+                            if nuevo_id:
+                                st.success(f"✅ {label.capitalize()} creado (con parámetros invertidos)")
+                                st.session_state[f"modal_{key}_open"] = False
+                                time.sleep(1)
+                                st.rerun()
+                        except Exception as e2:
+                            st.error(f"❌ También falló con parámetros invertidos: {str(e2)}")
                 else:
-                    st.session_state[f"modal_{key}_error"] = "⚠️ El nombre no puede estar vacío"
-                    st.rerun()
+                    st.error("⚠️ El nombre no puede estar vacío")
         
         with col2:
             if st.button("❌ Cancelar", key=f"{key}_cancelar", use_container_width=True):
                 st.session_state[f"modal_{key}_open"] = False
-                st.session_state[f"modal_{key}_error"] = None
                 st.rerun()
     
     return entidad_id
+
 def show_cliente_lugar_selector_edicion(
     user_id: str, 
     cliente_inicial_id: Optional[int] = None,
