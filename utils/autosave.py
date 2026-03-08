@@ -42,32 +42,25 @@ class AutoSaveManager:
             st.error(f"Error guardando borrador: {e}")
             return False
     
-def load_draft(self) -> Optional[Dict[str, Any]]:
-    """Carga el borrador desde session_state o archivo local"""
-    try:
-        # 1️⃣ Prioridad: session_state
-        if self.draft_key in st.session_state:
-            draft = st.session_state[self.draft_key]
-
-            # Validar estructura mínima
-            if isinstance(draft, dict):
+    def load_draft(self) -> Optional[Dict[str, Any]]:
+        """Carga el borrador desde session_state o archivo local"""
+        try:
+            # 1. Prioridad: session_state
+            if self.draft_key in st.session_state:
+                draft = st.session_state[self.draft_key]
                 return draft
-
-        # 2️⃣ Archivo local
-        if os.path.exists(self.draft_file):
-            with open(self.draft_file, "r", encoding="utf-8") as f:
-                draft = json.load(f)
-
-            # Guardar también en session_state para acceso rápido
-            st.session_state[self.draft_key] = draft
-
-            return draft
-
-        return None
-
-    except Exception as e:
-        st.error(f"Error cargando borrador: {e}")
-        return None
+            
+            # 2. Archivo local
+            if os.path.exists(self.draft_file):
+                with open(self.draft_file, "r", encoding="utf-8") as f:
+                    draft = json.load(f)
+                return draft
+            
+            return None
+            
+        except Exception as e:
+            st.error(f"Error cargando borrador: {e}")
+            return None
     
     def clear_draft(self) -> bool:
         """Elimina el borrador completamente"""
