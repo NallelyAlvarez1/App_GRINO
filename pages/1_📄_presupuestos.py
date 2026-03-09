@@ -161,16 +161,24 @@ user_id = st.session_state.get('user_id')
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO A REALIZAR ==========
 cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
 
-# Autoguardado cuando cambian cliente/lugar/descripción
-if any([cliente_id != st.session_state.get('cliente_id'),
-        lugar_trabajo_id != st.session_state.get('lugar_trabajo_id'), 
-        descripcion != st.session_state.get('descripcion')]):
+# PRIMERO guardar en session_state
+st.session_state['cliente_id'] = cliente_id
+st.session_state['cliente_nombre'] = cliente_nombre
+st.session_state['lugar_trabajo_id'] = lugar_trabajo_id
+st.session_state['lugar_nombre'] = lugar_nombre
+st.session_state['descripcion'] = descripcion
+
+# DESPUÉS verificar cambios
+if any([
+    cliente_id != st.session_state.get('_last_cliente_id'),
+    lugar_trabajo_id != st.session_state.get('_last_lugar_id'),
+    descripcion != st.session_state.get('_last_desc')
+]):
     autosave_with_debounce()
 
-# Actualizar session state
-st.session_state['cliente_id'] = cliente_id
-st.session_state['lugar_trabajo_id'] = lugar_trabajo_id  
-st.session_state['descripcion'] = descripcion
+st.session_state['_last_cliente_id'] = cliente_id
+st.session_state['_last_lugar_id'] = lugar_trabajo_id
+st.session_state['_last_desc'] = descripcion
 
 # ========== SECCIÓN PRINCIPAL CON COLUMNAS ==========
 col1, col2, col3 = st.columns([8,0.5,12])
@@ -183,6 +191,7 @@ with col1:
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
         st.session_state['_items_modified'] = True
+        st.rerun()
 
     # ========== SECCIÓN MANO DE OBRA ===============
     st.markdown(" ")
@@ -205,7 +214,8 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
     # Autoguardado después de edición avanzada
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
-        st.session_state['_items_modified'] = False
+        st.session_state['_items_modified'] = True
+        st.rerun()
 
 # ========== GUARDADO ==========
 # Solo mostrar botón de guardar si hay items y total > 0
