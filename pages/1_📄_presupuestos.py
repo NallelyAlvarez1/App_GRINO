@@ -75,7 +75,7 @@ user_id = st.session_state.get('user_id')
 autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
 
 # --- VERIFICAR BORRADOR AL INICIAR ---
-if autosave_manager.has_draft() and 'categorias' not in st.session_state:
+if autosave_manager.has_draft():
     draft = autosave_manager.load_draft()
     if draft:
         draft_age = autosave_manager.get_draft_age()
@@ -182,7 +182,7 @@ with col1:
     # Autoguardado después de agregar/modificar items
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
-        st.session_state['_items_modified'] = False
+        st.session_state['_items_modified'] = True
 
     # ========== SECCIÓN MANO DE OBRA ===============
     st.markdown(" ")

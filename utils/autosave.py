@@ -114,31 +114,27 @@ class AutoSaveManager:
 
 # Funciones de utilidad (opcionales - puedes ponerlas aquí o en el archivo principal)
 def capture_current_state() -> Dict[str, Any]:
-    """Captura todo el estado editable actual"""
     return {
-        "cliente_id": st.session_state.get('presupuesto_cliente_id'),
-        "lugar_trabajo_id": st.session_state.get('presupuesto_lugar_trabajo_id'),
-        "descripcion": st.session_state.get('presupuesto_descripcion', ''),
+        "cliente_id": st.session_state.get('cliente_id'),
+        "lugar_trabajo_id": st.session_state.get('lugar_trabajo_id'),
+        "descripcion": st.session_state.get('descripcion', ''),
         "categorias": st.session_state.get('categorias', {}),
-        "presupuesto_original_id": st.session_state.get('presupuesto_a_editar_id'),
-        "cliente_nombre": st.session_state.get('presupuesto_cliente_nombre', ''),
-        "lugar_nombre": st.session_state.get('presupuesto_lugar_nombre', '')
+        "cliente_nombre": st.session_state.get('cliente_nombre', ''),
+        "lugar_nombre": st.session_state.get('lugar_nombre', '')
     }
-
 def restore_draft_state(draft: Dict[str, Any]):
     """Restaura el estado desde un borrador"""
     try:
-        st.session_state['presupuesto_cliente_id'] = draft.get('cliente_id')
-        st.session_state['presupuesto_lugar_trabajo_id'] = draft.get('lugar_trabajo_id')
-        st.session_state['presupuesto_descripcion'] = draft.get('descripcion', '')
+        st.session_state['cliente_id'] = draft.get('cliente_id')
+        st.session_state['lugar_trabajo_id'] = draft.get('lugar_trabajo_id')
+        st.session_state['descripcion'] = draft.get('descripcion', '')
         st.session_state['categorias'] = draft.get('categorias', {})
-        st.session_state['presupuesto_a_editar_id'] = draft.get('presupuesto_original_id')
-        
-        # Restaurar nombres si existen
+
         if 'cliente_nombre' in draft:
-            st.session_state['presupuesto_cliente_nombre'] = draft['cliente_nombre']
+            st.session_state['cliente_nombre'] = draft['cliente_nombre']
+
         if 'lugar_nombre' in draft:
-            st.session_state['presupuesto_lugar_nombre'] = draft['lugar_nombre']
-            
+            st.session_state['lugar_nombre'] = draft['lugar_nombre']
+
     except Exception as e:
         st.error(f"Error restaurando borrador: {e}")
