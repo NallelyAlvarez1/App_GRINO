@@ -104,6 +104,10 @@ def autosave_with_debounce():
     
     # Guardar máximo cada 30 segundos
     if current_time - last_save > 30:
+        # Asegurar que items_data esté en session_state
+        if 'items_data' not in st.session_state and 'categorias' in st.session_state:
+            st.session_state['items_data'] = st.session_state['categorias']
+            
         current_state = capture_current_state()
         if autosave_manager.save_draft(current_state):
             st.session_state._last_autosave_main = current_time
@@ -112,6 +116,15 @@ def autosave_with_debounce():
 # --- CONTENIDO PROTEGIDO (SOLO SI EL USUARIO ESTÁ LOGUEADO) ---
 st.header("📑 Generador de Presupuestos", divider="blue")
 
+# Al inicio del archivo, después de inicializar autosave_manager
+if st.session_state.get('debug_mode', False):
+    if st.button("🔍 Ver estado actual", key="debug_state"):
+        st.json({
+            "session_state_keys": list(st.session_state.keys()),
+            "items_data": st.session_state.get('items_data', {}),
+            "categorias": st.session_state.get('categorias', {})
+        })
+        
 # === BOTÓN PARA LIMPIAR TODO ===
 col1, col2 = st.columns([1, 1])
 with col1:
@@ -187,6 +200,9 @@ with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
     items_data = show_items_presupuesto(user_id)
     
+    if items_data:
+        st.session_state['items_data'] = items_data
+    
     # Autoguardado después de agregar/modificar items
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
@@ -206,10 +222,13 @@ with col3:
     total_general = show_resumen(items_data)
 
 # ========== SECCIÓN EDICIÓN DE ITEMS ===========
-# Solo mostrar edición si hay items
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()):
     st.subheader("✏️ Editar Items", divider="blue")
     items_data = show_edited_presupuesto(user_id)
+    
+    # Guardar items_data actualizados
+    if items_data:
+        st.session_state['items_data'] = items_data
     
     # Autoguardado después de edición avanzada
     if st.session_state.get('_items_modified', False):

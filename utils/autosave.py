@@ -113,43 +113,51 @@ class AutoSaveManager:
             return "tiempo desconocido"
 
 # Funciones de utilidad (opcionales - puedes ponerlas aquí o en el archivo principal)
+# utils/autosave.py
+
 def capture_current_state() -> Dict[str, Any]:
     """Captura el estado actual del presupuesto para guardarlo como borrador"""
     return {
         "cliente_id": st.session_state.get('cliente_id'),
         "lugar_trabajo_id": st.session_state.get('lugar_trabajo_id'),
         "descripcion": st.session_state.get('descripcion', ''),
-        # Guardar con el mismo nombre que espera el preview (con tilde)
-        "categorías": st.session_state.get('categorias', {}),  # OJO: aquí mapeamos 'categorias' a 'categorías'
-        "items_data": st.session_state.get('items_data', {}),  # También guardar items_data
+        # Guardar ambas claves para compatibilidad
+        "categorias": st.session_state.get('categorias', {}),
+        "categorías": st.session_state.get('categorias', {}),  # Duplicado para el preview
+        "items_data": st.session_state.get('items_data', {}),
         "cliente_nombre": st.session_state.get('cliente_nombre', ''),
         "lugar_nombre": st.session_state.get('lugar_nombre', ''),
-        # Guardar también los trabajos simples
         "trabajos_simples": st.session_state.get('trabajos_simples', [])
     }
 
 def restore_draft_state(draft: Dict[str, Any]):
     """Restaura el estado desde un borrador"""
     try:
+        # Restaurar datos básicos
         st.session_state['cliente_id'] = draft.get('cliente_id')
         st.session_state['lugar_trabajo_id'] = draft.get('lugar_trabajo_id')
         st.session_state['descripcion'] = draft.get('descripcion', '')
         
-        # Restaurar categorías (manejando ambos posibles nombres)
-        categorias = draft.get('categorías', draft.get('categorias', {}))
-        st.session_state['categorias'] = categorias
+        # Restaurar categorías (priorizar 'categorias' que es lo que usa la app)
+        if 'categorias' in draft:
+            st.session_state['categorias'] = draft['categorias']
+        elif 'categorías' in draft:
+            st.session_state['categorias'] = draft['categorías']
         
-        # Restaurar items_data si existe
-        if 'items_data' in draft:
+        # Restaurar items_data (es lo más importante)
+        if 'items_data' in draft and draft['items_data']:
             st.session_state['items_data'] = draft['items_data']
+            # También sincronizar con categorias si es necesario
+            if not st.session_state.get('categorias'):
+                st.session_state['categorias'] = draft['items_data']
         
-        # Restaurar trabajos_simples si existe
+        # Restaurar trabajos_simples
         if 'trabajos_simples' in draft:
             st.session_state['trabajos_simples'] = draft['trabajos_simples']
 
+        # Restaurar nombres
         if 'cliente_nombre' in draft:
             st.session_state['cliente_nombre'] = draft['cliente_nombre']
-
         if 'lugar_nombre' in draft:
             st.session_state['lugar_nombre'] = draft['lugar_nombre']
 
