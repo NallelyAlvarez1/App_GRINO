@@ -71,10 +71,21 @@ with st.sidebar:
         st.rerun()
 
 # --- INICIALIZAR AUTOSAVE ---
+# Al inicio, después de check_login()
+is_logged_in = check_login()
+
+# SIEMPRE crear el autosave manager, incluso si no hay user_id
+if 'persistent_session_id' not in st.session_state:
+    import uuid
+    st.session_state['persistent_session_id'] = str(uuid.uuid4())
+
+# Obtener user_id (puede ser None si la sesión se perdió)
 user_id = st.session_state.get('user_id')
+
+# Crear manager con el user_id (o None)
 autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
 
-# --- VERIFICAR BORRADOR AL INICIAR ---
+# VERIFICAR BORRADOR AL INICIAR - AHORA SIEMPRE, incluso sin login
 if autosave_manager.has_draft():
     draft = autosave_manager.load_draft()
     if draft:
@@ -96,6 +107,16 @@ if autosave_manager.has_draft():
                 autosave_manager.clear_draft()
                 st.rerun()
 
+# Ahora sí, verificar login después de manejar el borrador
+if not is_logged_in:
+    st.error("❌ Acceso denegado. Por favor, inicia sesión en la página principal.")
+    st.info("💡 El borrador se ha guardado y estará disponible cuando inicies sesión.")
+    
+    # Mostrar opción de ir a login
+    if st.button("🔐 Ir a inicio de sesión"):
+        st.switch_page("App_principal.py")
+    st.stop()
+
 # --- FUNCIÓN DE AUTOGUARDADO ---
 def autosave_with_debounce():
     """Autoguardado con control de frecuencia"""
@@ -104,11 +125,10 @@ def autosave_with_debounce():
     
     # Guardar máximo cada 30 segundos
     if current_time - last_save > 30:
-        # Asegurar que items_data esté en session_state
-        if 'items_data' not in st.session_state and 'categorias' in st.session_state:
-            st.session_state['items_data'] = st.session_state['categorias']
-            
+        # Capturar estado actual
         current_state = capture_current_state()
+        
+        # Guardar SIEMPRE en archivo (esto persiste recargas)
         if autosave_manager.save_draft(current_state):
             st.session_state._last_autosave_main = current_time
             st.toast("💾 Guardado automáticamente", icon="💾")
