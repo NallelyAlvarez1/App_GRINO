@@ -115,20 +115,43 @@ class AutoSaveManager:
 # Funciones de utilidad (opcionales - puedes ponerlas aquí o en el archivo principal)
 # utils/autosave.py
 
+# utils/autosave.py
+
 def capture_current_state() -> Dict[str, Any]:
     """Captura el estado actual del presupuesto para guardarlo como borrador"""
-    return {
+    # DEBUG: Imprimir qué hay en session_state
+    print("=== CAPTURANDO ESTADO ===")
+    print(f"Keys en session_state: {list(st.session_state.keys())}")
+    
+    state = {
         "cliente_id": st.session_state.get('cliente_id'),
         "lugar_trabajo_id": st.session_state.get('lugar_trabajo_id'),
         "descripcion": st.session_state.get('descripcion', ''),
-        # Guardar ambas claves para compatibilidad
-        "categorias": st.session_state.get('categorias', {}),
-        "categorías": st.session_state.get('categorias', {}),  # Duplicado para el preview
-        "items_data": st.session_state.get('items_data', {}),
         "cliente_nombre": st.session_state.get('cliente_nombre', ''),
         "lugar_nombre": st.session_state.get('lugar_nombre', ''),
-        "trabajos_simples": st.session_state.get('trabajos_simples', [])
     }
+    
+    # DEBUG: Verificar específicamente items_data y categorias
+    items_data = st.session_state.get('items_data', {})
+    categorias = st.session_state.get('categorias', {})
+    
+    print(f"items_data: {items_data}")
+    print(f"categorias: {categorias}")
+    
+    # Guardar ambas
+    state["items_data"] = items_data
+    state["categorias"] = categorias
+    state["categorías"] = categorias  # Para compatibilidad
+    
+    # DEBUG: Verificar trabajos_simples
+    trabajos = st.session_state.get('trabajos_simples', [])
+    print(f"trabajos_simples: {trabajos}")
+    state["trabajos_simples"] = trabajos
+    
+    print(f"Estado capturado: {state}")
+    print("=== FIN CAPTURA ===")
+    
+    return state
 
 def restore_draft_state(draft: Dict[str, Any]):
     """Restaura el estado desde un borrador"""

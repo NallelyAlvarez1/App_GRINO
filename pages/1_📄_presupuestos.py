@@ -116,15 +116,6 @@ def autosave_with_debounce():
 # --- CONTENIDO PROTEGIDO (SOLO SI EL USUARIO ESTÁ LOGUEADO) ---
 st.header("📑 Generador de Presupuestos", divider="blue")
 
-# Al inicio del archivo, después de inicializar autosave_manager
-if st.session_state.get('debug_mode', False):
-    if st.button("🔍 Ver estado actual", key="debug_state"):
-        st.json({
-            "session_state_keys": list(st.session_state.keys()),
-            "items_data": st.session_state.get('items_data', {}),
-            "categorias": st.session_state.get('categorias', {})
-        })
-        
 # === BOTÓN PARA LIMPIAR TODO ===
 col1, col2 = st.columns([1, 1])
 with col1:
