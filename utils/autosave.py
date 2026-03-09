@@ -153,14 +153,8 @@ def capture_current_state() -> Dict[str, Any]:
 
 
 def restore_draft_state(draft: Dict[str, Any]):
-    """Restaura el estado desde un borrador y fuerza la actualización de la UI"""
+    """Restaura el estado desde un borrador"""
     try:
-        # Limpiar estados anteriores que puedan interferir
-        keys_to_clear = ['categorias', 'items_data', 'trabajos_simples']
-        for key in keys_to_clear:
-            if key in st.session_state:
-                del st.session_state[key]
-        
         # Restaurar datos básicos
         st.session_state['cliente_id'] = draft.get('cliente_id')
         st.session_state['lugar_trabajo_id'] = draft.get('lugar_trabajo_id')
@@ -168,33 +162,24 @@ def restore_draft_state(draft: Dict[str, Any]):
         st.session_state['cliente_nombre'] = draft.get('cliente_nombre', '')
         st.session_state['lugar_nombre'] = draft.get('lugar_nombre', '')
         
-        # Restaurar items (priorizar items_data)
-        items_data = draft.get('items_data', {}) or draft.get('categorias', {})
-        if items_data:
-            st.session_state['items_data'] = items_data
-            st.session_state['categorias'] = items_data
-            
-            # Forzar la inicialización de items en cada categoría
-            for cat_name, cat_data in items_data.items():
-                if isinstance(cat_data, dict):
-                    if 'items' not in cat_data:
-                        cat_data['items'] = []
-                    if 'mano_obra' not in cat_data:
-                        cat_data['mano_obra'] = 0
+        # Restaurar items_data (LO MÁS IMPORTANTE)
+        if draft.get('items_data'):
+            st.session_state['items_data'] = draft['items_data']
+            st.session_state['categorias'] = draft['items_data']
+        elif draft.get('categorias'):
+            st.session_state['categorias'] = draft['categorias']
+            st.session_state['items_data'] = draft['categorias']
         
         # Restaurar trabajos simples
-        trabajos = draft.get('trabajos_simples', [])
-        if trabajos:
-            st.session_state['trabajos_simples'] = trabajos
+        if draft.get('trabajos_simples'):
+            st.session_state['trabajos_simples'] = draft['trabajos_simples']
         
-        # Marcar que se ha restaurado un borrador
+        # Marcar que se restauró
         st.session_state['draft_restored'] = True
         
-        # Forzar recarga completa para que todos los componentes se actualicen
-        st.success("✅ Borrador restaurado correctamente. Recargando...")
-        time.sleep(1)  # Pequeña pausa para que se vea el mensaje
+        st.success("✅ Borrador restaurado correctamente")
+        time.sleep(1)
         st.rerun()
-        
+
     except Exception as e:
         st.error(f"Error restaurando borrador: {e}")
-        return False

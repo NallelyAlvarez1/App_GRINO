@@ -178,23 +178,8 @@ with col2:
         st.caption("💾 No hay borradores guardados")
 
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
-# Usar valores restaurados si existen
-cliente_id = st.session_state.get('cliente_id')
-cliente_nombre = st.session_state.get('cliente_nombre', '')
-lugar_trabajo_id = st.session_state.get('lugar_trabajo_id')
-lugar_nombre = st.session_state.get('lugar_nombre', '')
-descripcion = st.session_state.get('descripcion', '')
-
-# Si no hay cliente_id o se forzó cambio, mostrar selector
-if not cliente_id or st.session_state.get('force_client_select', False):
-    cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
-    st.session_state['force_client_select'] = False
-else:
-    # Mostrar información del cliente seleccionado
-    st.info(f"**Cliente:** {cliente_nombre} | **Lugar:** {lugar_nombre}")
-    if st.button("🔄 Cambiar cliente/lugar"):
-        st.session_state['force_client_select'] = True
-        st.rerun()
+# Siempre mostrar el selector completo (como funcionaba antes)
+cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
 
 # Guardar en session_state
 st.session_state['cliente_id'] = cliente_id
@@ -221,8 +206,8 @@ col1, col2, col3 = st.columns([8,0.5,12])
 with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
     
-    # Usar items_data restaurados si existen
-    initial_items = st.session_state.get('items_data', {})
+    # Pasar initial_data si existe
+    initial_items = st.session_state.get('items_data', None)
     items_data = show_items_presupuesto(user_id, initial_data=initial_items)
     
     if items_data:
