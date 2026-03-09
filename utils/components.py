@@ -358,11 +358,20 @@ def selector_categoria(user_id: str, mostrar_label: bool = True, requerido: bool
     
     return categoria_id, categoria_nombre, False  # Siempre devolvemos False para modal_abierto ya que no usamos esa lógica
 
-def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = False) -> Dict[str, Any]:
+def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: bool = False, initial_data: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Interfaz para agregar ítems (normales). Devuelve st.session_state['categorias'] actualizado.
     persist_db: intenta persistir cada ítem creado con utils.db.upsert_item si existe.
+    initial_data: datos iniciales para restaurar un borrador.
     """
+    # Si hay initial_data y no hay categorías en session_state, restaurarlas
+    if initial_data is not None and 'categorias' not in st.session_state:
+        st.session_state['categorias'] = initial_data
+    elif initial_data is not None and not st.session_state['categorias']:
+        # Si hay categorías vacías pero tenemos initial_data, usarlo
+        st.session_state['categorias'] = initial_data
+    
+    # Inicializar si no existe
     if 'categorias' not in st.session_state:
         st.session_state['categorias'] = {}
 

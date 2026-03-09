@@ -63,26 +63,28 @@ user_id = st.session_state.get('user_id')
 autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
 
 # --- VERIFICAR BORRADOR (INCLUSO SIN LOGIN) ---
-if autosave_manager.has_draft():
+if autosave_manager.has_draft() and not st.session_state.get('draft_restored', False):
     draft = autosave_manager.load_draft()
     if draft:
         draft_age = autosave_manager.get_draft_age()
         
-        st.warning(f"📝 Se encontró un borrador guardado {draft_age}")
-        
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            if st.button("🔄 Cargar Borrador", use_container_width=True, key="load_draft_main"):
-                restore_draft_state(draft)
-                st.rerun()
-        with col2:
-            if st.button("👀 Ver Vista Previa", use_container_width=True, key="preview_draft_main"):
-                with st.expander("Vista previa del borrador", expanded=True):
-                    st.json(draft)
-        with col3:
-            if st.button("🗑️ Descartar", use_container_width=True, key="discard_draft_main"):
-                autosave_manager.clear_draft()
-                st.rerun()
+        # Usar un container para el mensaje que no desaparezca
+        warning_container = st.empty()
+        with warning_container.container():
+            st.warning(f"📝 Se encontró un borrador guardado {draft_age}")
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                if st.button("🔄 Cargar Borrador", use_container_width=True, key="load_draft_main"):
+                    restore_draft_state(draft)
+            with col2:
+                if st.button("👀 Ver Vista Previa", use_container_width=True, key="preview_draft_main"):
+                    with st.expander("Vista previa del borrador", expanded=True):
+                        st.json(draft)
+            with col3:
+                if st.button("🗑️ Descartar", use_container_width=True, key="discard_draft_main"):
+                    autosave_manager.clear_draft()
+                    st.rerun()
 
 # AHORA VERIFICAR ACCESO
 if not is_logged_in:
@@ -96,10 +98,36 @@ if not is_logged_in:
 with st.sidebar:
     st.markdown("**👤 Usuario:**")
     st.markdown(f"`{st.session_state.usuario}`")
+    
+    # Botón de debug opcional
+    with st.expander("🔧 Debug", expanded=False):
+        if st.button("📊 Ver Estado Actual"):
+            st.write("Session State:", {
+                k: v for k, v in st.session_state.items() 
+                if not k.startswith('_') and k not in ['usuario', 'user_id']
+            })
+        
+        if st.button("📁 Ver Borrador Guardado"):
+            draft = autosave_manager.load_draft()
+            st.json(draft if draft else "No hay borrador")
+    
     if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
         sign_out()
         st.toast("Sesión cerrada correctamente", icon="🌱")
         st.rerun()
+
+# Si se restauró un borrador, asegurar estructura de datos
+if st.session_state.get('draft_restored', False):
+    if 'items_data' in st.session_state:
+        items_data = st.session_state['items_data']
+        for cat_name, cat_data in items_data.items():
+            if isinstance(cat_data, dict):
+                if 'items' not in cat_data:
+                    cat_data['items'] = []
+                if 'mano_obra' not in cat_data:
+                    cat_data['mano_obra'] = 0
+    # Limpiar flag después de procesar
+    # st.session_state['draft_restored'] = False  # Comentado para mantener el flag
 
 # --- FUNCIÓN DE AUTOGUARDADO ---
 def autosave_with_debounce():
@@ -123,7 +151,7 @@ with col1:
         keys_to_delete = [
             "categorias", "descripcion", "items_data", "cliente_id",
             "cliente_nombre", "lugar_trabajo_id", "lugar_nombre",
-            "trabajos_simples", "total_general"
+            "trabajos_simples", "total_general", "draft_restored"
         ]
         for key in keys_to_delete:
             if key in st.session_state:
@@ -150,7 +178,23 @@ with col2:
         st.caption("💾 No hay borradores guardados")
 
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
-cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
+# Usar valores restaurados si existen
+cliente_id = st.session_state.get('cliente_id')
+cliente_nombre = st.session_state.get('cliente_nombre', '')
+lugar_trabajo_id = st.session_state.get('lugar_trabajo_id')
+lugar_nombre = st.session_state.get('lugar_nombre', '')
+descripcion = st.session_state.get('descripcion', '')
+
+# Si no hay cliente_id o se forzó cambio, mostrar selector
+if not cliente_id or st.session_state.get('force_client_select', False):
+    cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
+    st.session_state['force_client_select'] = False
+else:
+    # Mostrar información del cliente seleccionado
+    st.info(f"**Cliente:** {cliente_nombre} | **Lugar:** {lugar_nombre}")
+    if st.button("🔄 Cambiar cliente/lugar"):
+        st.session_state['force_client_select'] = True
+        st.rerun()
 
 # Guardar en session_state
 st.session_state['cliente_id'] = cliente_id
@@ -176,7 +220,10 @@ col1, col2, col3 = st.columns([8,0.5,12])
 
 with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
-    items_data = show_items_presupuesto(user_id)
+    
+    # Usar items_data restaurados si existen
+    initial_items = st.session_state.get('items_data', {})
+    items_data = show_items_presupuesto(user_id, initial_data=initial_items)
     
     if items_data:
         st.session_state['items_data'] = items_data
