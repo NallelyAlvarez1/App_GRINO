@@ -14,9 +14,7 @@ from utils.components import (
     safe_numeric_value
 )
 from utils.db import save_presupuesto_completo
-# IMPORTAR LAS FUNCIONES DE AUTOSAVE
 from utils.autosave import AutoSaveManager, capture_current_state, restore_draft_state
-
 
 st.markdown("""
 <style>
@@ -34,7 +32,6 @@ h2, h3, h4 {
 </style>
 """, unsafe_allow_html=True)
 
-
 def calcular_total(items_data: Dict[str, Any]) -> float:
     """Calcula el total general del presupuesto, usando la utilidad de valores seguros."""
     total = 0
@@ -42,11 +39,8 @@ def calcular_total(items_data: Dict[str, Any]) -> float:
         return 0
         
     for categoria, data in items_data.items():
-        # Verificar que data tenga la estructura esperada
         if not isinstance(data, dict):
             continue
-            
-        # Sumar items (usando safe_numeric_value)
         items = data.get('items', [])
         if isinstance(items, list):
             total += sum(safe_numeric_value(item.get('total', 0)) for item in items)
@@ -54,38 +48,21 @@ def calcular_total(items_data: Dict[str, Any]) -> float:
     return total
 
 st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
+
+# VERIFICAR LOGIN PRIMERO
 is_logged_in = check_login()
 
-if not is_logged_in:
-    st.error("❌ Acceso denegado. Por favor, inicia sesión en la página principal.")
-    st.switch_page("App_principal.py")
-    st.stop()
-
-with st.sidebar:
-    st.markdown("**👤 Usuario:**")
-    st.markdown(f"`{st.session_state.usuario}`")
-
-    if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
-        sign_out()
-        st.toast("Sesión cerrada correctamente", icon="🌱")
-        st.rerun()
-
-# --- INICIALIZAR AUTOSAVE ---
-# Al inicio, después de check_login()
-is_logged_in = check_login()
-
-# SIEMPRE crear el autosave manager, incluso si no hay user_id
+# SIEMPRE crear persistent session ID
 if 'persistent_session_id' not in st.session_state:
-    import uuid
     st.session_state['persistent_session_id'] = str(uuid.uuid4())
 
-# Obtener user_id (puede ser None si la sesión se perdió)
+# Obtener user_id (puede ser None)
 user_id = st.session_state.get('user_id')
 
-# Crear manager con el user_id (o None)
+# Crear manager SIEMPRE (incluso sin login)
 autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
 
-# VERIFICAR BORRADOR AL INICIAR - AHORA SIEMPRE, incluso sin login
+# --- VERIFICAR BORRADOR (INCLUSO SIN LOGIN) ---
 if autosave_manager.has_draft():
     draft = autosave_manager.load_draft()
     if draft:
@@ -107,15 +84,22 @@ if autosave_manager.has_draft():
                 autosave_manager.clear_draft()
                 st.rerun()
 
-# Ahora sí, verificar login después de manejar el borrador
+# AHORA VERIFICAR ACCESO
 if not is_logged_in:
     st.error("❌ Acceso denegado. Por favor, inicia sesión en la página principal.")
     st.info("💡 El borrador se ha guardado y estará disponible cuando inicies sesión.")
-    
-    # Mostrar opción de ir a login
     if st.button("🔐 Ir a inicio de sesión"):
         st.switch_page("App_principal.py")
     st.stop()
+
+# CONTINUAR CON LA APP (USUARIO LOGUEADO)
+with st.sidebar:
+    st.markdown("**👤 Usuario:**")
+    st.markdown(f"`{st.session_state.usuario}`")
+    if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
+        sign_out()
+        st.toast("Sesión cerrada correctamente", icon="🌱")
+        st.rerun()
 
 # --- FUNCIÓN DE AUTOGUARDADO ---
 def autosave_with_debounce():
@@ -123,17 +107,13 @@ def autosave_with_debounce():
     current_time = time.time()
     last_save = getattr(st.session_state, '_last_autosave_main', 0)
     
-    # Guardar máximo cada 30 segundos
     if current_time - last_save > 30:
-        # Capturar estado actual
         current_state = capture_current_state()
-        
-        # Guardar SIEMPRE en archivo (esto persiste recargas)
         if autosave_manager.save_draft(current_state):
             st.session_state._last_autosave_main = current_time
             st.toast("💾 Guardado automáticamente", icon="💾")
 
-# --- CONTENIDO PROTEGIDO (SOLO SI EL USUARIO ESTÁ LOGUEADO) ---
+# --- CONTENIDO PROTEGIDO ---
 st.header("📑 Generador de Presupuestos", divider="blue")
 
 # === BOTÓN PARA LIMPIAR TODO ===
@@ -141,27 +121,17 @@ col1, col2 = st.columns([1, 1])
 with col1:
     if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
         keys_to_delete = [
-            "categorias",
-            "descripcion", 
-            "items_data",
-            "cliente_id",
-            "cliente_nombre",
-            "lugar_trabajo_id",
-            "lugar_nombre",
-            "trabajos_simples",
-            "total_general"
+            "categorias", "descripcion", "items_data", "cliente_id",
+            "cliente_nombre", "lugar_trabajo_id", "lugar_nombre",
+            "trabajos_simples", "total_general"
         ]
-
         for key in keys_to_delete:
             if key in st.session_state:
                 del st.session_state[key]
-
-        # Limpiar también el borrador
         autosave_manager.clear_draft()
         st.rerun()
 
 with col2:
-    # Panel de control de autoguardado
     if autosave_manager.has_draft():
         draft_age = autosave_manager.get_draft_age()
         st.caption(f"💾 Último guardado: {draft_age}")
@@ -179,20 +149,17 @@ with col2:
     else:
         st.caption("💾 No hay borradores guardados")
 
-# Obtener user_id para usar en los componentes
-user_id = st.session_state.get('user_id')
-
-# ========== SECCIÓN CLIENTE, LUGAR y TRABAJO A REALIZAR ==========
+# ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
 cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
 
-# PRIMERO guardar en session_state
+# Guardar en session_state
 st.session_state['cliente_id'] = cliente_id
 st.session_state['cliente_nombre'] = cliente_nombre
 st.session_state['lugar_trabajo_id'] = lugar_trabajo_id
 st.session_state['lugar_nombre'] = lugar_nombre
 st.session_state['descripcion'] = descripcion
 
-# DESPUÉS verificar cambios
+# Verificar cambios y autoguardar
 if any([
     cliente_id != st.session_state.get('_last_cliente_id'),
     lugar_trabajo_id != st.session_state.get('_last_lugar_id'),
@@ -204,7 +171,7 @@ st.session_state['_last_cliente_id'] = cliente_id
 st.session_state['_last_lugar_id'] = lugar_trabajo_id
 st.session_state['_last_desc'] = descripcion
 
-# ========== SECCIÓN PRINCIPAL CON COLUMNAS ==========
+# ========== SECCIÓN PRINCIPAL ==========
 col1, col2, col3 = st.columns([8,0.5,12])
 
 with col1:
@@ -214,13 +181,10 @@ with col1:
     if items_data:
         st.session_state['items_data'] = items_data
     
-    # Autoguardado después de agregar/modificar items
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
-        st.session_state['_items_modified'] = True
-        st.rerun()
+        st.session_state['_items_modified'] = False
 
-    # ========== SECCIÓN MANO DE OBRA ===============
     st.markdown(" ")
     st.markdown("#### 🛠️Añadir trabajo")
     show_trabajos_simples(items_data)
@@ -232,28 +196,22 @@ with col3:
     st.subheader("📊 Resumen del Presupuesto", divider="blue")
     total_general = show_resumen(items_data)
 
-# ========== SECCIÓN EDICIÓN DE ITEMS ===========
+# ========== SECCIÓN EDICIÓN ===========
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()):
     st.subheader("✏️ Editar Items", divider="blue")
     items_data = show_edited_presupuesto(user_id)
     
-    # Guardar items_data actualizados
     if items_data:
         st.session_state['items_data'] = items_data
     
-    # Autoguardado después de edición avanzada
     if st.session_state.get('_items_modified', False):
         autosave_with_debounce()
-        st.session_state['_items_modified'] = True
-        st.rerun()
+        st.session_state['_items_modified'] = False
 
 # ========== GUARDADO ==========
-# Solo mostrar botón de guardar si hay items y total > 0
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()) and total_general > 0:
-    if st.button("💾 Guardar Presupuesto", type="primary", width='stretch',
-                help="Revise todos los datos antes de guardar"):
+    if st.button("💾 Guardar Presupuesto", type="primary", width='stretch'):
         
-        # Validaciones finales
         if not cliente_id or not lugar_trabajo_id:
             st.error("❌ Debe seleccionar un cliente y lugar de trabajo")
             st.stop()
@@ -275,8 +233,7 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
 
                 if presupuesto_id:
                     st.toast(f"✅ Presupuesto #{presupuesto_id} guardado!", icon="✅")
-
-                    # CORRECCIÓN: Generar PDF con parámetros correctos
+                    
                     pdf_path = generar_pdf(
                         cliente_nombre=cliente_nombre,    
                         lugar_cliente=lugar_nombre,       
@@ -284,29 +241,21 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                         descripcion=descripcion
                     )
 
-                    # Validar PDF
                     if not pdf_path or not os.path.exists(pdf_path):
                         st.error("❌ Error generando PDF: archivo no creado.")
                         st.stop()
 
-                    st.toast("🎉 Presupuesto guardado correctamente. ¿Qué deseas hacer ahora?")
-
-                    # Botón de descarga PDF
                     with open(pdf_path, "rb") as f:
                         pdf_bytes = f.read()
                     
-                    # Limpiar archivo temporal
                     try:
                         os.unlink(pdf_path)
                     except Exception:
                         pass
 
-                    # LIMPIAR BORRADOR DESPUÉS DE GUARDADO EXITOSO
                     autosave_manager.clear_draft()
 
-                    # Mostrar opciones
                     col1, col2, col3 = st.columns(3)
-                    
                     with col1:
                         st.download_button(
                             "📄 Descargar PDF",
@@ -315,17 +264,13 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                             mime="application/pdf",
                             use_container_width=True
                         )
-                    
                     with col2:
                         if st.button("🔄 Crear otro presupuesto", use_container_width=True):
-                            # Limpiar session state
-                            for key in ['categorias', 'descripcion']:
+                            for key in ['categorias', 'descripcion', 'items_data']:
                                 if key in st.session_state:
                                     del st.session_state[key]
-                            # Limpiar borrador
                             autosave_manager.clear_draft()
                             st.rerun()
-                    
                     with col3:
                         st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial", use_container_width=True)
 
