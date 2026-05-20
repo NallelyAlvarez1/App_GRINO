@@ -103,7 +103,7 @@ if is_logged_in:
             "titulo": "Estados de Pago", 
             "descripcion": "Genera estados de pago de Clientes.", 
             "pagina": "pages/5_📄_Estados_de_Pago.py", 
-            "key": "cli",
+            "key": "est",
             "imagen_path": "images/imagen1.png"
         },
         {
