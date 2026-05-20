@@ -726,3 +726,62 @@ def save_draft(draft: dict):
 def load_draft() -> dict:
     """Carga un borrador guardado si existe."""
     return {}
+
+def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
+    """
+    Obtiene los estados de cuenta de un usuario desde Supabase aplicando filtros.
+    """
+    supabase = get_supabase_client()
+    filtros = filtros or {}
+    
+    try:
+        # 1. Hacemos la consulta base incluyendo los joins relacionales a cliente y lugar_trabajo
+        # Ajusta los nombres de las columnas ('cliente_id', 'lugar_trabajo_id') si en tu BD se llaman distinto
+        query = supabase.from_('estados_cuenta').select('''
+            id,
+            user_id,
+            cliente_id,
+            lugar_trabajo_id,
+            monto_base,
+            abono_monto,
+            total_neto,
+            fecha_emision,
+            cliente:cliente_id(nombre),
+            lugar_trabajo:lugar_trabajo_id(nombre)
+        ''').eq('user_id', user_id)
+        
+        # 2. Aplicar filtro de Cliente si existe
+        if 'cliente_id' in filtros and filtros['cliente_id']:
+            query = query.eq('cliente_id', filtros['cliente_id'])
+            
+        # 3. Aplicar filtro de Lugar de Trabajo si existe
+        if 'lugar_trabajo_id' in filtros and filtros['lugar_trabajo_id']:
+            query = query.eq('lugar_trabajo_id', filtros['lugar_trabajo_id'])
+            
+        # 4. Aplicar filtro de Fecha (fecha_inicio) si existe
+        if 'fecha_inicio' in filtros and filtros['fecha_inicio']:
+            # Convertimos la fecha a formato ISO string para Supabase
+            fecha_iso = filtros['fecha_inicio'].strftime('%Y-%m-%d')
+            query = query.gte('fecha_emision', fecha_iso)
+            
+        # 5. Ordenar por los más recientes
+        query = query.order('fecha_emision', ascending=False)
+        
+        response = query.execute()
+        return response.data or []
+        
+    except Exception as e:
+        st.error(f"Error interno en get_estados_cuenta_usuario: {e}")
+        return []
+
+def delete_estado_cuenta(estado_id: int, user_id: str) -> bool:
+    """
+    Elimina un estado de cuenta de la base de datos.
+    """
+    supabase = get_supabase_client()
+    try:
+        response = supabase.from_('estados_cuenta').delete().eq('id', estado_id).eq('user_id', user_id).execute()
+        return len(response.data) > 0
+    except Exception as e:
+        st.error(f"Error al eliminar estado de cuenta: {e}")
+        return False

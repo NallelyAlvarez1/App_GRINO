@@ -5,19 +5,20 @@ from datetime import datetime, timedelta
 from utils.db import (
     get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
-    _show_presupuesto_detail
+    _show_presupuesto_detail,
+    get_estados_cuenta_usuario,
+    delete_estado_cuenta
 )
-# IMPORTANTE: Asegúrate de añadir estas funciones en tu utils/db.py
+
 try:
     from utils.db import get_estados_cuenta_usuario, delete_estado_cuenta
 except ImportError:
-    # Funciones fallback por si aún no las declaras en db.py
     def get_estados_cuenta_usuario(uid, f): return []
     def delete_estado_cuenta(id, uid): return False
 
 from utils.components import safe_numeric_value
 from utils.pdf import mostrar_boton_descarga_pdf
-# Asegúrate de que tu utils/pdf.py pueda gestionar la descarga del estado de cuenta
+
 try:
     from utils.pdf import mostrar_boton_descarga_estado_cuenta
 except ImportError:
