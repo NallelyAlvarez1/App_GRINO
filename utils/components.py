@@ -399,7 +399,7 @@ def show_items_presupuesto(user_id: str, is_editing: bool = False, persist_db: b
         with col_unidad:
             unidad = st.selectbox(
                 "Unidad:", 
-                ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"], 
+                ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha", "Hora"], 
                 key="unidad_principal"
             )
         col_cantidad, col_precio, col_total = st.columns(3)
@@ -552,7 +552,7 @@ def show_edited_presupuesto(user_id: str, is_editing: bool = False, persist_db: 
 
                 if item.get('tipo', 'normal') != 'trabajo_simple':
                     # UNIDAD
-                    unidad_opts = ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"]
+                    unidad_opts = ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha", "Hora"]
                     current_unidad = st.session_state[unidad_key]
                     new_unidad = col2.selectbox(
                         "Unidad",
