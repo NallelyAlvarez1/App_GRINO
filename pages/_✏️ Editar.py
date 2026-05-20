@@ -83,7 +83,8 @@ st.header("✏️ Editar presupuesto")
 is_logged_in = check_login()
 if not is_logged_in:
     st.error("🔒 Por favor inicie sesión primero")
-    st.page_link("App_principal.py", label="Ir a página de inicio")
+    st.switch_page("App_principal.py")
+    #st.page_link("App_principal.py", label="Ir a página de inicio")
     st.stop()
 
 with st.sidebar:

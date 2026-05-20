@@ -100,6 +100,13 @@ if is_logged_in:
             "imagen_path": "images/imagen2.png"
         },
         {
+            "titulo": "Estados de Pago", 
+            "descripcion": "Genera estados de pago de Clientes.", 
+            "pagina": "pages/5_📄_Estados_de_Pago.py", 
+            "key": "cli",
+            "imagen_path": "images/imagen1.png"
+        },
+        {
             "titulo": "Clientes Registrados", 
             "descripcion": "Revisa y/o elimina clientes registrados.", 
             "pagina": "pages/3_👥_clientes_y_lugares.py", 
