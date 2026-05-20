@@ -735,7 +735,7 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
     filtros = filtros or {}
     
     try:
-        # CORRECCIÓN: Se cambia .from_() por .table()
+        # Uso estricto de .table() exigido por la librería de Supabase en Python
         query = supabase.table('estados_cuenta').select('''
             id,
             user_id,
@@ -749,20 +749,18 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
             lugar_trabajo:lugar_trabajo_id(nombre)
         ''').eq('user_id', user_id)
         
-        # Aplicar filtro de Cliente si existe
+        # Aplicar filtros dinámicos si vienen en el diccionario
         if 'cliente_id' in filtros and filtros['cliente_id']:
             query = query.eq('cliente_id', filtros['cliente_id'])
             
-        # Aplicar filtro de Lugar de Trabajo si existe
         if 'lugar_trabajo_id' in filtros and filtros['lugar_trabajo_id']:
             query = query.eq('lugar_trabajo_id', filtros['lugar_trabajo_id'])
             
-        # Aplicar filtro de Fecha (fecha_inicio) si existe
         if 'fecha_inicio' in filtros and filtros['fecha_inicio']:
             fecha_iso = filtros['fecha_inicio'].strftime('%Y-%m-%d')
             query = query.gte('fecha_emision', fecha_iso)
             
-        # Ordenar por los más recientes
+        # Ordenar cronológicamente descendente
         query = query.order('fecha_emision', ascending=False)
         
         response = query.execute()
@@ -774,13 +772,13 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
 
 def delete_estado_cuenta(estado_id: int, user_id: str) -> bool:
     """
-    Elimina un estado de cuenta de la base de datos.
+    Elimina un estado de cuenta de la base de datos de manera segura.
     """
     supabase = get_supabase_client()
     try:
-        # CORRECCIÓN: Se cambia .from_() por .table()
         response = supabase.table('estados_cuenta').delete().eq('id', estado_id).eq('user_id', user_id).execute()
         return len(response.data) > 0
     except Exception as e:
         st.error(f"Error al eliminar estado de cuenta: {e}")
         return False
+

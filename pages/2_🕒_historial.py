@@ -6,16 +6,9 @@ from utils.db import (
     get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail,
-    get_estados_cuenta_usuario,
+    get_estados_cuenta_usuario,  # Importación limpia y directa
     delete_estado_cuenta
 )
-
-try:
-    from utils.db import get_estados_cuenta_usuario, delete_estado_cuenta
-except ImportError:
-    def get_estados_cuenta_usuario(uid, f): return []
-    def delete_estado_cuenta(id, uid): return False
-
 from utils.components import safe_numeric_value
 from utils.pdf import mostrar_boton_descarga_pdf
 
@@ -70,7 +63,7 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS (Afectan a ambas pestañas)
+# 2. FILTROS
 # -----------------------------------------------------------
 with st.expander("🔍 Filtros de Búsqueda", expanded=True):
     col1, col2, col3 = st.columns(3)
@@ -107,7 +100,7 @@ with st.expander("🔍 Filtros de Búsqueda", expanded=True):
         st.error(f"Error al cargar filtros: {str(e)}")
         st.stop()
 
-# Estructurar parámetros de filtros comunes
+# Estructurar parámetros de filtros
 filtros = {}
 if cliente_filtro_id:
     filtros['cliente_id'] = cliente_filtro_id
@@ -143,7 +136,6 @@ with tab_presupuestos:
     if not presupuestos:
         st.info("🔍 No se encontraron presupuestos con los filtros seleccionados.")
     else:
-        # Métricas Presupuestos
         suma_total_p = sum(safe_numeric_value(p.get('total', 0)) for p in presupuestos)
         total_p = len(presupuestos)
         avg_p = suma_total_p / total_p if total_p else 0
@@ -155,7 +147,6 @@ with tab_presupuestos:
 
         st.subheader("📋 Lista de Presupuestos")
 
-        # Tabla Encabezado
         with st.container():
             col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
             col1.markdown("**Cliente**")
@@ -167,7 +158,6 @@ with tab_presupuestos:
             col7.markdown("**Ítems**")
             col8.markdown("**Acciones**")
 
-        # Filas Presupuestos
         for p in presupuestos:
             with st.container(border=True):
                 col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
@@ -213,7 +203,6 @@ with tab_presupuestos:
                     with b3:
                         with st.popover("👁️", use_container_width=True):
                             st.header("📋 Vista Previa del Presupuesto")
-                            st.write(f"**ID:** {p['id']}")
                             _show_presupuesto_detail(presupuesto_id=p['id'])
 
                     with b4:
@@ -223,11 +212,12 @@ with tab_presupuestos:
                                 st.rerun()
 
 # =========================================================================
-# PESTAÑA B: ESTADOS DE CUENTA (NUEVA SECCIÓN)
+# PESTAÑA B: ESTADOS DE CUENTA
 # =========================================================================
 with tab_estados_cuenta:
     try:
-        with st.spinner("🔄 Cargando estados de cuenta..."):
+        with st.spinner("🔄 Cargando estados de cuenta desde Supabase..."):
+            # Llama directo a la función limpia de db.py
             estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
     except Exception as e:
         st.error(f"❌ Error al obtener estados de cuenta: {str(e)}")
@@ -236,7 +226,6 @@ with tab_estados_cuenta:
     if not estados_cuenta:
         st.info("🔍 No se encontraron estados de cuenta con los filtros seleccionados.")
     else:
-        # Métricas Estados de Cuenta
         suma_total_ec = sum(safe_numeric_value(ec.get('total_neto', 0)) for ec in estados_cuenta)
         total_ec = len(estados_cuenta)
         avg_ec = suma_total_ec / total_ec if total_ec else 0
@@ -248,7 +237,6 @@ with tab_estados_cuenta:
 
         st.subheader("📋 Lista de Estados de Cuenta")
 
-        # Tabla Encabezado Estilo Mellizo (Quitamos columna 'Ver.' e 'Items' ya que cambian por 'Abono')
         with st.container():
             col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
             col_cli.markdown("**Cliente**")
@@ -259,17 +247,15 @@ with tab_estados_cuenta:
             col_net.markdown("**Total Neto**")
             col_acc.markdown("**Acciones**")
 
-        # Filas Estados de Cuenta
         for ec in estados_cuenta:
             with st.container(border=True):
                 col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
                 
-                # Rescate de datos relacionales
-                cli_nom = ec.get('cliente', {}).get('nombre', 'N/A')
-                lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A')
+                cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
+                lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
-                col_cli.write(cli_nom.title() if cli_nom else 'N/A')
-                col_lug.write(lug_nom.title() if lug_nom else 'N/A')
+                col_cli.write(cli_nom.title())
+                col_lug.write(lug_nom.title())
                 
                 fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
                 col_fec.write(fec_emision.split('T')[0] if 'T' in fec_emision else fec_emision)
@@ -278,11 +264,9 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
 
-                # Botones de Acción Equivalentes
                 with col_acc:
                     ba1, ba2, ba3 = st.columns([1, 1, 1])
                     
-                    # 1. Descarga PDF
                     with ba1:
                         pdf_b, f_name, ok = mostrar_boton_descarga_estado_cuenta(ec['id'])
                         if ok and pdf_b:
@@ -291,24 +275,21 @@ with tab_estados_cuenta:
                                 data=pdf_b,
                                 file_name=f_name,
                                 mime="application/pdf",
-                                key=f"down_ec_{ec['id']}",
-                                help="Descargar PDF Estado Cuenta"
+                                key=f"down_ec_{ec['id']}"
                             )
                         else:
                             st.button("🚫", key=f"down_dis_ec_{ec['id']}", disabled=True)
                     
-                    # 2. Vista Previa Rápida Popover
                     with ba2:
                         with st.popover("👁️", use_container_width=True):
                             st.header("📄 Detalle de Estado de Cuenta")
                             st.write(f"**Documento N°:** {ec['id']:04d}")
                             st.write(f"**Fecha:** {fec_emision}")
                             st.divider()
-                            st.write("Aquí puedes vincular una función que liste los registros de la tabla `detalles_estado_cuenta` correspondientes a este ID.")
+                            st.info("Detalles adicionales del estado de cuenta.")
 
-                    # 3. Eliminar Historial
                     with ba3:
-                        if st.button("🗑️", key=f"del_ec_{ec['id']}", help="Eliminar registro"):
+                        if st.button("🗑️", key=f"del_ec_{ec['id']}"):
                             if delete_estado_cuenta(ec['id'], user_id):
                                 st.success("✅ Eliminado")
                                 st.rerun()
