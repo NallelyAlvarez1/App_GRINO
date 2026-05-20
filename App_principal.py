@@ -143,7 +143,7 @@ if is_logged_in:
     """, unsafe_allow_html=True)
 
     # Crear columnas para las tarjetas
-    cols = st.columns(4)
+    cols = st.columns(5)
 
     # Renderizar las tarjetas en las columnas
     for i, pagina in enumerate(paginas):
