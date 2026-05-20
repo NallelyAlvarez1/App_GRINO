@@ -405,7 +405,7 @@ def generar_pdf_estado_cuenta(id_documento: int, cliente_nombre: str, lugar_nomb
         pdf.set_y(y_inicio_fondo + 5)
         pdf.set_x(MARGEN_X)
         pdf.set_font("helvetica", style='B', size=22)
-        pdf.cell(100, 10, "Estado de Cuenta N°", border=0, ln=0, align='L', fill=False)
+        pdf.cell(100, 10, "Estado de Cuenta", border=0, ln=0, align='L', fill=False)
 
         # b) Nombre de la Empresa
         pdf.set_x(MARGEN_X)
