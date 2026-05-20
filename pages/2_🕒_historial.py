@@ -7,16 +7,28 @@ from utils.db import (
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail
 )
-from utils.components import safe_numeric_value
+# IMPORTANTE: Asegúrate de añadir estas funciones en tu utils/db.py
+try:
+    from utils.db import get_estados_cuenta_usuario, delete_estado_cuenta
+except ImportError:
+    # Funciones fallback por si aún no las declaras en db.py
+    def get_estados_cuenta_usuario(uid, f): return []
+    def delete_estado_cuenta(id, uid): return False
 
+from utils.components import safe_numeric_value
 from utils.pdf import mostrar_boton_descarga_pdf
+# Asegúrate de que tu utils/pdf.py pueda gestionar la descarga del estado de cuenta
+try:
+    from utils.pdf import mostrar_boton_descarga_estado_cuenta
+except ImportError:
+    def mostrar_boton_descarga_estado_cuenta(id): return None, "", False
 
 st.markdown("""
 <style>
 .stTextInput, .stNumberInput, .stSelectbox, .stButton {
     margin-bottom: -0.3rem;
     margin-top: -0.4rem;
-            
+}
 /* Reducir espacio en subheaders */
 h2, h3, h4 {
     margin-top: 0.4rem !important;
@@ -27,12 +39,11 @@ h2, h3, h4 {
 </style>
 """, unsafe_allow_html=True)
 
-
 # -----------------------------------------------------------
 # 1. SEGURIDAD Y CONFIGURACIÓN
 # -----------------------------------------------------------
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
-st.header("🕒 Historial de Presupuestos")
+st.header("🕒 Historial General de Documentos")
 
 is_logged_in = check_login()
 
@@ -54,47 +65,36 @@ with st.sidebar:
         st.toast("Sesión cerrada correctamente", icon="🌱")
         st.rerun()
 
-# -----------------------------------------------------------
-# CONTENIDO DE HISTORIAL
-# -----------------------------------------------------------
-
 user_id = st.session_state.user_id 
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS
+# 2. FILTROS (Afectan a ambas pestañas)
 # -----------------------------------------------------------
-with st.expander("🔍 Filtros", expanded=True):
+with st.expander("🔍 Filtros de Búsqueda", expanded=True):
     col1, col2, col3 = st.columns(3)
     
     try:
-        # Obtener clientes y lugares filtrados por el usuario
         clientes = get_clientes(user_id) 
         lugares = get_lugares_trabajo(user_id)
         
-        # Mapeo para facilitar la búsqueda de ID a partir del nombre en el selectbox
         clientes_map = {id: nombre for id, nombre in clientes}
         lugares_map = {id: nombre for id, nombre in lugares}
         
-        # --- Filtro Cliente ---
         with col1:
             cliente_filtro_nombre = st.selectbox(
                 "Filtrar por cliente:",
                 options=["Todos los clientes"] + list(clientes_map.values()),
             )
-            # Obtiene el ID del cliente o None si es "Todos los clientes"
             cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
         
-        # --- Filtro Lugar ---
         with col2:
             lugar_filtro_nombre = st.selectbox(
                 "Filtrar por lugar:",
                 options=["Todos los lugares"] + list(lugares_map.values()),
             )
-            # Obtiene el ID del lugar o None si es "Todos los lugares"
             lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
         
-        # --- Filtro Fecha ---
         with col3:
             fecha_filtro = st.selectbox(
                 "Filtrar por fecha:",
@@ -105,10 +105,8 @@ with st.expander("🔍 Filtros", expanded=True):
     except Exception as e:
         st.error(f"Error al cargar filtros: {str(e)}")
         st.stop()
-        
-# -----------------------------------------------------------
-# 3. APLICAR FILTROS Y OBTENER PRESUPUESTOS
-# -----------------------------------------------------------
+
+# Estructurar parámetros de filtros comunes
 filtros = {}
 if cliente_filtro_id:
     filtros['cliente_id'] = cliente_filtro_id
@@ -126,168 +124,192 @@ elif fecha_filtro == "Últimos 90 días":
 if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
-try:
-    with st.spinner("🔄 Cargando presupuestos..."):
+# -----------------------------------------------------------
+# 3. SECCIONES EN PESTAÑAS (Tabs)
+# -----------------------------------------------------------
+tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Presupuestos Guardados", "📄 Estados de Cuenta Generados"])
+
+# =========================================================================
+# PESTAÑA A: PRESUPUESTOS
+# =========================================================================
+with tab_presupuestos:
+    try:
         presupuestos = get_presupuestos_usuario(user_id, filtros) 
-        
-except Exception as e:
-    st.error(f"❌ Error al obtener presupuestos: {str(e)}")
-    with st.expander("🔧 Diagnóstico detallado del error"):
-        st.exception(e)
-    st.stop()
+    except Exception as e:
+        st.error(f"❌ Error al obtener presupuestos: {str(e)}")
+        presupuestos = []
 
-if not presupuestos:
-    st.info("🔍 No se encontraron presupuestos con los filtros seleccionados.")
-    if st.button("📋 Crear mi primer presupuesto"):
-        # Asegúrate de que el nombre del archivo de la página de creación sea el correcto
-        st.switch_page("App_principal.py") 
-    st.stop()
+    if not presupuestos:
+        st.info("🔍 No se encontraron presupuestos con los filtros seleccionados.")
+    else:
+        # Métricas Presupuestos
+        suma_total_p = sum(safe_numeric_value(p.get('total', 0)) for p in presupuestos)
+        total_p = len(presupuestos)
+        avg_p = suma_total_p / total_p if total_p else 0
 
-# -----------------------------------------------------------
-# 4. MOSTRAR PRESUPUESTOS (Métricas y Lista)
-# -----------------------------------------------------------
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Total Presupuestos", f"{total_p}")
+        c2.metric("Suma Total Presupuestos", f"${suma_total_p:,.0f}")
+        c3.metric("Promedio Presupuestos", f"${avg_p:,.0f}")
 
-# Resumen estadístico
-suma_total = sum(safe_numeric_value(p.get('total', 0)) for p in presupuestos)
-total_presupuestos = len(presupuestos)
-avg_total = suma_total / total_presupuestos if total_presupuestos else 0
+        st.subheader("📋 Lista de Presupuestos")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total Presupuestos", f"{total_presupuestos}")
-with col2:
-    st.metric("Suma Total", f"${suma_total:,.0f}")
-with col3:
-    st.metric("Promedio", f"${avg_total:,.0f}")
+        # Tabla Encabezado
+        with st.container():
+            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
+            col1.markdown("**Cliente**")
+            col2.markdown("**Lugar**")
+            col3.markdown("**Descripción**")
+            col4.markdown("**Ver.**")
+            col5.markdown("**Fecha**")
+            col6.markdown("**Total**")
+            col7.markdown("**Ítems**")
+            col8.markdown("**Acciones**")
 
-st.subheader("📋 Lista de Presupuestos")
-
-# Encabezado tipo tabla - MODIFICADO: Agregar columna Descripción
-with st.container():
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
-    col1.markdown("**Cliente**")
-    col2.markdown("**Lugar**")
-    col3.markdown("**Descripción**")
-    col4.markdown("**Ver.**")  # NUEVA COLUMNA
-    col5.markdown("**Fecha**")
-    col6.markdown("**Total**")
-    col7.markdown("**Ítems**")
-    col8.markdown("**Acciones**")
-
-# Filas tipo tabla - MODIFICADO: Agregar columna Descripción
-for i, p in enumerate(presupuestos):
-    with st.container(border=True):
-        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
-    
-        total_display = safe_numeric_value(p.get('total', 0))
-
-        # --- COLUMNA VERSIÓN DESDE 'notas' ---
-        notas = p.get('notas', '')
-
-        cliente_nombre = p.get('cliente', {}).get('nombre', 'N/A')
-        col1.write(cliente_nombre.title() if cliente_nombre else 'N/A')
+        # Filas Presupuestos
+        for p in presupuestos:
+            with st.container(border=True):
+                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.5, 2.5, 1, 2, 2, 1, 3])
             
-        lugar_nombre = p.get('lugar', {}).get('nombre', 'N/A')
-        col2.write(lugar_nombre.title() if lugar_nombre else 'N/A')
-        
-        # NUEVA COLUMNA: Descripción - CON MÁS OPCIONES DE DEBUG
-        descripcion = p.get('descripcion', 'Sin descripción')
-        
-       
-        # Mostrar texto truncado si es muy largo, con tooltip completo
-        if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
-            col3.write(descripcion[:30] + "...")
-        elif descripcion and descripcion != 'Sin descripción':
-            col3.write(descripcion)
-        else:
-            col3.write('Sin descripción')
+                total_display = safe_numeric_value(p.get('total', 0))
+                notas = p.get('notas', '')
 
-        col4.write(f"**{notas}**")
-
-        fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
-        try:
-            fecha_dt = datetime.fromisoformat(fecha_str.replace('Z', '+00:00')) # Manejo de formato ISO
-            col5.write(fecha_dt.strftime('%Y-%m-%d'))
-        except Exception:
-            col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
-            
-        col6.write(f"**${total_display:,.2f}**")
-        col7.write(str(p.get('num_items', 0)))
-
-        # --- Botones de Acción ---
-        with col8:
-            b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
-            
-            state_key = f"expander_toggle_{p['id']}"
-            if state_key not in st.session_state:
-                st.session_state[state_key] = False
-
-            with b1: # BOTÓN EDITAR
-                if st.button("✏️", key=f"edit_{p['id']}", help="Editar este presupuesto", use_container_width=True):
-                    st.session_state['presupuesto_a_editar_id'] = p['id'] 
-                    st.session_state['presupuesto_cargado_automaticamente'] = False  # Resetear para carga fresca
-                    st.success(f"🔄 Redirigiendo para editar presupuesto ID: {p['id']}")
-                    time.sleep(1)  # Pequeña pausa para que se vea el mensaje
-                    st.switch_page("pages/_✏️ Editar.py")
-            
-            with b2:
-                pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
-                if success and pdf_bytes:
-                    st.download_button(
-                        label="⬇️",
-                        data=pdf_bytes,
-                        file_name=file_name,
-                        mime="application/pdf",
-                        key=f"down_{p['id']}",
-                        help="Descargar PDF"
-                    )
+                col1.write(p.get('cliente', {}).get('nombre', 'N/A').title())
+                col2.write(p.get('lugar', {}).get('nombre', 'N/A').title())
+                
+                descripcion = p.get('descripcion', 'Sin descripción')
+                if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
+                    col3.write(descripcion[:30] + "...")
                 else:
-                    st.button("🚫", key=f"down_{p['id']}_disabled", disabled=True, help="PDF no disponible")
-            
-            with b3: # BOTÓN VISTA PREVIA (POPOVER GRANDE MEJORADO)
-                with st.popover("👁️", use_container_width=True):
-                    # CSS específico para este popover
-                    st.markdown(f"""
-                    <style>
-                    div[data-testid="stPopover"] [data-testid="stMarkdownContainer"]:has(h3) + div {{
-                        width: 1000px !important;
-                        max-width: 95vw !important;
-                        height: 900px !important;
-                        max-height: 85vh !important;
-                        overflow-y: auto !important;
-                        padding: 20px !important;
-                    }}
-                    </style>
-                    """, unsafe_allow_html=True)
-                    
-                    st.header("📋 Vista Previa del Presupuesto")
-                    st.subheader(f"ID: {p['id']}")
-                    
-                    # Mostrar información básica primero
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write(f"**Cliente:** {p.get('cliente', {}).get('nombre', 'N/A')}")
-                        st.write(f"**Lugar:** {p.get('lugar', {}).get('nombre', 'N/A')}")
-                    with col2:
-                        st.write(f"**Fecha:** {p.get('fecha_creacion', 'N/A')}")
-                        st.write(f"**Total:** ${safe_numeric_value(p.get('total', 0)):,.0f}")
-                    
-                    st.markdown("---")
-                    _show_presupuesto_detail(presupuesto_id=p['id'])
+                    col3.write(descripcion)
 
-            with b4: # BOTÓN ELIMINAR
-                delete_clicked = st.button("🗑️", key=f"del_{p['id']}", type="secondary", help="Eliminar")
-        
-        # --- Mensaje de eliminación FUERA de col7 pero DENTRO del container ---
-        if 'delete_success' in st.session_state and st.session_state['delete_success'] == p['id']:
-            st.success("✅ Presupuesto eliminado correctamente")
-            # Limpiar el estado después de mostrar el mensaje
-            del st.session_state['delete_success']
-        
-        # Lógica de eliminación separada
-        if delete_clicked:
-            if delete_presupuesto(p['id'], user_id):
-                st.session_state['delete_success'] = p['id']
-                st.rerun()
-            else:
-                st.error("❌ No se pudo eliminar el presupuesto.")
+                col4.write(f"**{notas}**")
+
+                fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
+                col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
+                    
+                col6.write(f"**${total_display:,.0f}**")
+                col7.write(str(p.get('num_items', 0)))
+
+                with col8:
+                    b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
+                    
+                    with b1:
+                        if st.button("✏️", key=f"edit_{p['id']}", help="Editar presupuesto"):
+                            st.session_state['presupuesto_a_editar_id'] = p['id'] 
+                            st.session_state['presupuesto_cargado_automaticamente'] = False
+                            st.success("🔄 Redirigiendo...")
+                            time.sleep(0.5)
+                            st.switch_page("pages/_✏️ Editar.py")
+                    
+                    with b2:
+                        pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
+                        if success and pdf_bytes:
+                            st.download_button(label="⬇️", data=pdf_bytes, file_name=file_name, mime="application/pdf", key=f"down_{p['id']}")
+                        else:
+                            st.button("🚫", key=f"down_dis_{p['id']}", disabled=True)
+                    
+                    with b3:
+                        with st.popover("👁️", use_container_width=True):
+                            st.header("📋 Vista Previa del Presupuesto")
+                            st.write(f"**ID:** {p['id']}")
+                            _show_presupuesto_detail(presupuesto_id=p['id'])
+
+                    with b4:
+                        if st.button("🗑️", key=f"del_{p['id']}", help="Eliminar"):
+                            if delete_presupuesto(p['id'], user_id):
+                                st.success("✅ Eliminado")
+                                st.rerun()
+
+# =========================================================================
+# PESTAÑA B: ESTADOS DE CUENTA (NUEVA SECCIÓN)
+# =========================================================================
+with tab_estados_cuenta:
+    try:
+        with st.spinner("🔄 Cargando estados de cuenta..."):
+            estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
+    except Exception as e:
+        st.error(f"❌ Error al obtener estados de cuenta: {str(e)}")
+        estados_cuenta = []
+
+    if not estados_cuenta:
+        st.info("🔍 No se encontraron estados de cuenta con los filtros seleccionados.")
+    else:
+        # Métricas Estados de Cuenta
+        suma_total_ec = sum(safe_numeric_value(ec.get('total_neto', 0)) for ec in estados_cuenta)
+        total_ec = len(estados_cuenta)
+        avg_ec = suma_total_ec / total_ec if total_ec else 0
+
+        ec1, ec2, ec3 = st.columns(3)
+        ec1.metric("Total Estados Generados", f"{total_ec}")
+        ec2.metric("Saldo Total Pendiente", f"${suma_total_ec:,.0f}")
+        ec3.metric("Promedio Cobro", f"${avg_ec:,.0f}")
+
+        st.subheader("📋 Lista de Estados de Cuenta")
+
+        # Tabla Encabezado Estilo Mellizo (Quitamos columna 'Ver.' e 'Items' ya que cambian por 'Abono')
+        with st.container():
+            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
+            col_cli.markdown("**Cliente**")
+            col_lug.markdown("**Lugar de Trabajo**")
+            col_fec.markdown("**Fecha Emisión**")
+            col_sub.markdown("**Monto Base**")
+            col_abo.markdown("**Abonos**")
+            col_net.markdown("**Total Neto**")
+            col_acc.markdown("**Acciones**")
+
+        # Filas Estados de Cuenta
+        for ec in estados_cuenta:
+            with st.container(border=True):
+                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
+                
+                # Rescate de datos relacionales
+                cli_nom = ec.get('cliente', {}).get('nombre', 'N/A')
+                lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A')
+                
+                col_cli.write(cli_nom.title() if cli_nom else 'N/A')
+                col_lug.write(lug_nom.title() if lug_nom else 'N/A')
+                
+                fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
+                col_fec.write(fec_emision.split('T')[0] if 'T' in fec_emision else fec_emision)
+                
+                col_sub.write(f"${safe_numeric_value(ec.get('monto_base', 0)):,.0f}")
+                col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
+                col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
+
+                # Botones de Acción Equivalentes
+                with col_acc:
+                    ba1, ba2, ba3 = st.columns([1, 1, 1])
+                    
+                    # 1. Descarga PDF
+                    with ba1:
+                        pdf_b, f_name, ok = mostrar_boton_descarga_estado_cuenta(ec['id'])
+                        if ok and pdf_b:
+                            st.download_button(
+                                label="⬇️",
+                                data=pdf_b,
+                                file_name=f_name,
+                                mime="application/pdf",
+                                key=f"down_ec_{ec['id']}",
+                                help="Descargar PDF Estado Cuenta"
+                            )
+                        else:
+                            st.button("🚫", key=f"down_dis_ec_{ec['id']}", disabled=True)
+                    
+                    # 2. Vista Previa Rápida Popover
+                    with ba2:
+                        with st.popover("👁️", use_container_width=True):
+                            st.header("📄 Detalle de Estado de Cuenta")
+                            st.write(f"**Documento N°:** {ec['id']:04d}")
+                            st.write(f"**Fecha:** {fec_emision}")
+                            st.divider()
+                            st.write("Aquí puedes vincular una función que liste los registros de la tabla `detalles_estado_cuenta` correspondientes a este ID.")
+
+                    # 3. Eliminar Historial
+                    with ba3:
+                        if st.button("🗑️", key=f"del_ec_{ec['id']}", help="Eliminar registro"):
+                            if delete_estado_cuenta(ec['id'], user_id):
+                                st.success("✅ Eliminado")
+                                st.rerun()
+                            else:
+                                st.error("No se pudo eliminar.")
