@@ -764,7 +764,7 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
             fecha_iso = filtros['fecha_inicio'].strftime('%Y-%m-%d')
             query = query.gte('fecha_emision', fecha_iso)
             
-        query = query.order('fecha_emision', ascending=False)
+        query = query.order('fecha_emision', desc=True)
         
         response = query.execute()
         return response.data or []
