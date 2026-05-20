@@ -82,9 +82,12 @@ st.header("✏️ Editar presupuesto")
 # ----- autenticación -----
 is_logged_in = check_login()
 if not is_logged_in:
-    st.error("🔒 Por favor inicie sesión primero")
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
     st.switch_page("App_principal.py")
-    #st.page_link("App_principal.py", label="Ir a página de inicio")
     st.stop()
 
 with st.sidebar:
