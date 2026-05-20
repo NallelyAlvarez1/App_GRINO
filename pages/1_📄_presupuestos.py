@@ -49,6 +49,7 @@ def calcular_total(items_data: Dict[str, Any]) -> float:
 
 st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
 
+
 # VERIFICAR LOGIN PRIMERO
 is_logged_in = check_login()
 
@@ -86,12 +87,13 @@ if autosave_manager.has_draft() and not st.session_state.get('draft_restored', F
                     autosave_manager.clear_draft()
                     st.rerun()
 
-# AHORA VERIFICAR ACCESO
 if not is_logged_in:
-    st.error("❌ Acceso denegado. Por favor, inicia sesión en la página principal.")
-    st.info("💡 El borrador se ha guardado y estará disponible cuando inicies sesión.")
-    if st.button("🔐 Ir a inicio de sesión"):
-        st.switch_page("App_principal.py")
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
+    st.switch_page("App_principal.py")
     st.stop()
 
 # CONTINUAR CON LA APP (USUARIO LOGUEADO)

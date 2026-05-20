@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from utils.db import get_supabase_client
 from utils.auth import check_login, sign_out
 
@@ -9,7 +10,16 @@ if 'user_id' not in st.session_state:
 if 'usuario' not in st.session_state:
     st.session_state.usuario = "Invitado"
 
+# ----- autenticación -----
 is_logged_in = check_login()
+if not is_logged_in:
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
+    st.switch_page("App_principal.py")
+    st.stop()
 
 
 # ------------------- Contenido Principal de la App -------------------

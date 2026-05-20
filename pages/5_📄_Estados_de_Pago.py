@@ -1,5 +1,7 @@
 import streamlit as st
 import datetime
+import time
+from utils.auth import check_login, sign_out
 from utils.db import get_clientes, get_lugares_trabajo, get_supabase_client
 from utils.pdf import generar_pdf_estado_cuenta
 
@@ -7,8 +9,16 @@ st.header("📄 Generar Estado de Cuenta Mensual")
 
 user_id = st.session_state.get('user_id')
 
-if not user_id:
-    st.warning("⚠️ Debes iniciar sesión para acceder a este módulo.")
+# ----- autenticación -----
+is_logged_in = check_login()
+
+if not is_logged_in:
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
+    st.switch_page("App_principal.py")
     st.stop()
 
 # Inicializar contenedor de ítems múltiples en el estado de la sesión

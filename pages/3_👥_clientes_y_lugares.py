@@ -1,5 +1,6 @@
 import streamlit as st
 import uuid
+import time
 from utils.auth import check_login, sign_out
 from utils.db import (
     get_clientes, create_cliente,
@@ -37,8 +38,13 @@ st.set_page_config(page_title="Clientes", page_icon="🌱", layout="wide")
 
 # ------------------ LOGIN ------------------
 is_logged_in = check_login()
+
 if not is_logged_in:
-    st.error("❌ Acceso denegado. Por favor, inicia sesión en la página principal.")
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
     st.switch_page("App_principal.py")
     st.stop()
 
