@@ -11,7 +11,7 @@ if not user_id:
     st.warning("⚠️ Debes iniciar sesión para acceder a este módulo.")
     st.stop()
 
-# Inicializar estados de la sesión si no existen
+# Inicializar contenedor de ítems múltiples en el estado de la sesión
 if 'items_estado_cuenta' not in st.session_state:
     st.session_state.items_estado_cuenta = []
 
@@ -35,9 +35,8 @@ with col2:
 
 st.write("---")
 
-# 2. Agregar Conceptos al Estado de Cuenta (Meses o Servicios Extra)
+# 2. Agregar Conceptos (Añadir múltiples meses o extras)
 st.subheader("➕ Agregar Cargos al Estado de Cuenta")
-
 tab_mes, tab_servicio = st.tabs(["📆 Agregar Mes de Mantención", "🛠️ Agregar Servicio Adicional"])
 
 meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
@@ -83,7 +82,7 @@ with tab_servicio:
                 })
                 st.rerun()
 
-# 3. Desglose de Cargos y Abonos Globales
+# 3. Listado y Resumen
 if st.session_state.items_estado_cuenta:
     st.write("---")
     st.subheader("📋 Detalle del Estado de Cuenta Actual")
@@ -106,7 +105,6 @@ if st.session_state.items_estado_cuenta:
         
     total_final = total_cargos - abono_monto
     
-    # Cuadro Resumen Informativo
     st.markdown(f"""
     ### Resumen del Saldo
     * **Subtotal Cargos Añadidos:** ${total_cargos:,}
@@ -114,11 +112,11 @@ if st.session_state.items_estado_cuenta:
     ### **Total Saldo Pendiente:** ${total_final:,}
     """.replace(",", "."))
     
-    # 4. Guardar y Descargar PDF
+    # 4. Procesar Guardado y habilitar el PDF
     if st.button("💾 Guardar y Generar PDF", type="primary", use_container_width=True):
         supabase = get_supabase_client()
         try:
-            # Para mantener compatibilidad con la base de datos, guardamos el primer mes/año de referencia en la cabecera
+            # Extraer primer mes y año disponible para guardar como referencia en campos de cabecera
             primer_mes = next((x["mes_num"] for x in st.session_state.items_estado_cuenta if x["mes_num"]), datetime.datetime.now().month)
             primer_ano = next((x["anio_num"] for x in st.session_state.items_estado_cuenta if x["anio_num"]), datetime.datetime.now().year)
             
@@ -139,7 +137,7 @@ if st.session_state.items_estado_cuenta:
             if response.data:
                 nuevo_id = response.data[0]['id']
                 
-                # Insertamos todos los ítems agregados (tanto meses base como servicios extras) en la tabla detalles
+                # Insertar los ítems múltiples del desglose
                 items_a_insertar = []
                 for item in st.session_state.items_estado_cuenta:
                     items_a_insertar.append({
@@ -149,7 +147,7 @@ if st.session_state.items_estado_cuenta:
                     })
                 supabase.table("detalles_estado_cuenta").insert(items_a_insertar).execute()
                 
-                # Generar bytes del PDF usando el módulo de impresión
+                # Generar el PDF usando el nuevo diseño idéntico al presupuesto
                 pdf_bytes, file_name = generar_pdf_estado_cuenta(
                     id_documento=nuevo_id,
                     cliente_nombre=cliente_seleccionado[1],
@@ -161,7 +159,7 @@ if st.session_state.items_estado_cuenta:
                 
                 st.success(f"✅ Estado de Cuenta N° {nuevo_id} guardado correctamente.")
                 
-                # Botón de descarga para el cliente
+                # Desplegar botón de descarga nativo con el diseño aplicado
                 st.download_button(
                     label="📥 Descargar PDF Estado de Cuenta",
                     data=pdf_bytes,
@@ -170,10 +168,10 @@ if st.session_state.items_estado_cuenta:
                     use_container_width=True
                 )
                 
-                # Limpiar el carro
+                # Vaciar la lista tras procesamiento exitoso
                 st.session_state.items_estado_cuenta = []
                 
         except Exception as e:
-            st.error(f"❌ Error al procesar: {str(e)}")
+            st.error(f"❌ Error al procesar el archivo: {str(e)}")
 else:
     st.info("💡 Comienza agregando meses de mantención o servicios adicionales para conformar el Estado de Cuenta.")
