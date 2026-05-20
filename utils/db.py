@@ -727,15 +727,19 @@ def load_draft() -> dict:
     """Carga un borrador guardado si existe."""
     return {}
 
+# Asegúrate de tener st.cache_data disponible en el archivo
+
+@st.cache_data(ttl=60)  # <-- Guarda en memoria por 60 segundos para máxima velocidad
 def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
     """
     Obtiene los estados de cuenta de un usuario desde Supabase aplicando filtros.
+    Optimizado con caché de Streamlit.
     """
     supabase = get_supabase_client()
     filtros = filtros or {}
     
     try:
-        # Uso estricto de .table() exigido por la librería de Supabase en Python
+        # Traemos solo los datos planos necesarios para la tabla de forma directa
         query = supabase.table('estados_cuenta').select('''
             id,
             user_id,
@@ -745,11 +749,11 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
             abono_monto,
             total_neto,
             fecha_emision,
+            pagado,
             cliente:cliente_id(nombre),
             lugar_trabajo:lugar_trabajo_id(nombre)
         ''').eq('user_id', user_id)
         
-        # Aplicar filtros dinámicos si vienen en el diccionario
         if 'cliente_id' in filtros and filtros['cliente_id']:
             query = query.eq('cliente_id', filtros['cliente_id'])
             
@@ -760,8 +764,7 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
             fecha_iso = filtros['fecha_inicio'].strftime('%Y-%m-%d')
             query = query.gte('fecha_emision', fecha_iso)
             
-        # Ordenar cronológicamente descendente
-        query = query.order('fecha_emision', desc=True)
+        query = query.order('fecha_emision', ascending=False)
         
         response = query.execute()
         return response.data or []
@@ -769,10 +772,25 @@ def get_estados_cuenta_usuario(user_id: str, filtros: dict = None) -> list:
     except Exception as e:
         st.error(f"Error interno en get_estados_cuenta_usuario: {e}")
         return []
+    
+def toggle_estado_pago_ec(estado_id: int, nuevo_estado: bool) -> bool:
+    """
+    Cambia el estado de pago (True/False) de un estado de cuenta específico.
+    """
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('estados_cuenta')\
+            .update({'pagado': nuevo_estado})\
+            .eq('id', estado_id)\
+            .execute()
+        return len(response.data) > 0
+    except Exception as e:
+        st.error(f"Error al actualizar estado de pago: {e}")
+        return False
 
 def delete_estado_cuenta(estado_id: int, user_id: str) -> bool:
     """
-    Elimina un estado de cuenta de la base de datos de manera segura.
+    Elimina un estado de cuenta de la base de datos.
     """
     supabase = get_supabase_client()
     try:
@@ -781,4 +799,3 @@ def delete_estado_cuenta(estado_id: int, user_id: str) -> bool:
     except Exception as e:
         st.error(f"Error al eliminar estado de cuenta: {e}")
         return False
-

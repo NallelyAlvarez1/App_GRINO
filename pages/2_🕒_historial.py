@@ -217,7 +217,8 @@ with tab_presupuestos:
 with tab_estados_cuenta:
     try:
         with st.spinner("🔄 Cargando estados de cuenta desde Supabase..."):
-            # Llama directo a la función limpia de db.py
+            # Importa la función de forma segura al momento de usarla si es necesario
+            from utils.db import toggle_estado_pago_ec
             estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
     except Exception as e:
         st.error(f"❌ Error al obtener estados de cuenta: {str(e)}")
@@ -237,19 +238,21 @@ with tab_estados_cuenta:
 
         st.subheader("📋 Lista de Estados de Cuenta")
 
+        # Modificación del encabezado: Agregamos columna Estado
         with st.container():
-            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
+            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.5, 1.5, 1.5, 1.5, 1.2, 2.8])
             col_cli.markdown("**Cliente**")
             col_lug.markdown("**Lugar de Trabajo**")
             col_fec.markdown("**Fecha Emisión**")
             col_sub.markdown("**Monto Base**")
             col_abo.markdown("**Abonos**")
             col_net.markdown("**Total Neto**")
+            col_est.markdown("**Estado**")  # <-- Nueva Columna
             col_acc.markdown("**Acciones**")
 
         for ec in estados_cuenta:
             with st.container(border=True):
-                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_acc = st.columns([2.5, 2.5, 2, 2, 2, 2, 3])
+                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.5, 1.5, 1.5, 1.5, 1.2, 2.8])
                 
                 cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
@@ -263,10 +266,19 @@ with tab_estados_cuenta:
                 col_sub.write(f"${safe_numeric_value(ec.get('monto_base', 0)):,.0f}")
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
+                
+                # Renderizar estado visual dinámico (Columna Estado)
+                es_pagado = ec.get('pagado', False)
+                if es_pagado:
+                    col_est.markdown("🟢 **Pagado**")
+                else:
+                    col_est.markdown("🔴 **Pendiente**")
 
+                # Botones de Acción Modificados para incluir el Cambio de Estado
                 with col_acc:
-                    ba1, ba2, ba3 = st.columns([1, 1, 1])
+                    ba1, ba2, ba3, ba4 = st.columns([1, 1, 1, 1])
                     
+                    # 1. Descarga PDF
                     with ba1:
                         pdf_b, f_name, ok = mostrar_boton_descarga_estado_cuenta(ec['id'])
                         if ok and pdf_b:
@@ -275,11 +287,13 @@ with tab_estados_cuenta:
                                 data=pdf_b,
                                 file_name=f_name,
                                 mime="application/pdf",
-                                key=f"down_ec_{ec['id']}"
+                                key=f"down_ec_{ec['id']}",
+                                help="Descargar PDF"
                             )
                         else:
                             st.button("🚫", key=f"down_dis_ec_{ec['id']}", disabled=True)
                     
+                    # 2. Vista Previa
                     with ba2:
                         with st.popover("👁️", use_container_width=True):
                             st.header("📄 Detalle de Estado de Cuenta")
@@ -288,10 +302,24 @@ with tab_estados_cuenta:
                             st.divider()
                             st.info("Detalles adicionales del estado de cuenta.")
 
+                    # 3. NUEVO BOTÓN: Cambiar Estado de Pago
                     with ba3:
-                        if st.button("🗑️", key=f"del_ec_{ec['id']}"):
+                        icono_pago = "💵" if not es_pagado else "🔄"
+                        ayuda_pago = "Marcar como PAGADO" if not es_pagado else "Cambiar a PENDIENTE"
+                        if st.button(icono_pago, key=f"pay_ec_{ec['id']}", help=ayuda_pago, use_container_width=True):
+                            if toggle_estado_pago_ec(ec['id'], not es_pagado):
+                                st.cache_data.clear()  # <--- CRUCIAL: Limpia la caché para forzar la lectura del dato nuevo
+                                st.toast(f"Estado de cuenta N°{ec['id']} actualizado", icon="🌱")
+                                time.sleep(0.4)
+                                st.rerun()
+
+                    # 4. Eliminar
+                    with ba4:
+                        if st.button("🗑️", key=f"del_ec_{ec['id']}", help="Eliminar", use_container_width=True):
                             if delete_estado_cuenta(ec['id'], user_id):
-                                st.success("✅ Eliminado")
+                                st.cache_data.clear()  # <--- CRUCIAL: Limpia la caché al eliminar
+                                st.success("✅ Eliminado correctamente")
+                                time.sleep(0.4)
                                 st.rerun()
                             else:
                                 st.error("No se pudo eliminar.")
