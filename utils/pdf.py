@@ -374,3 +374,112 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], st
         error_msg = f"Error al generar PDF: {str(e)}"
         print(error_msg)
         return None, "", False
+    
+def generar_pdf_estado_cuenta(id_documento: int, cliente_nombre: str, lugar_nombre: str, items: list, abono: float, total: float) -> Tuple[bytes, str]:
+    """
+    Genera el PDF del Estado de Cuenta manteniendo la línea gráfica corporativa de Jardines Alvarez.
+    """
+    import tempfile
+    
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # --- ENCABEZADO IDÉNTICO AL PRESUPUESTO ---
+    pdf.set_font('Arial', 'B', 18)
+    pdf.set_text_color(34, 139, 34) # Verde corporativo
+    pdf.cell(0, 8, EMPRESA.upper(), ln=True, align='L')
+    
+    pdf.set_font('Arial', 'I', 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 4, f"De: {CONTACTO_NOMBRE}" if 'CONTACTO_NAME' in globals() else f"De: {CONTACTO_NOMBRE}", ln=True)
+    pdf.cell(0, 4, f"Fono: {CONTACTO_TELEFONO} | Email: {CONTACTO_EMAIL}", ln=True)
+    pdf.ln(5)
+    
+    # Línea divisoria decorativa
+    pdf.set_draw_color(34, 139, 34)
+    pdf.set_line_width(0.5)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    
+    # Título del documento y Metadatos
+    pdf.set_font('Arial', 'B', 14)
+    pdf.set_text_color(50, 50, 50)
+    pdf.cell(100, 8, f"ESTADO DE CUENTA N° {id_documento:04d}", ln=False)
+    
+    pdf.set_font('Arial', '', 10)
+    fecha_hoy = datetime.now().strftime("%d de %B, %Y")
+    pdf.cell(0, 8, f"Fecha de Emisión: {fecha_hoy}", ln=True, align='R')
+    pdf.ln(3)
+    
+    # Bloque Datos del Cliente
+    pdf.set_fill_color(245, 245, 245)
+    pdf.rect(10, pdf.get_y(), 190, 22, 'F')
+    
+    pdf.set_font('Arial', 'B', 10)
+    pdf.set_text_color(34, 139, 34)
+    pdf.set_x(12)
+    pdf.cell(0, 6, "DATOS DEL CLIENTE:", ln=True)
+    
+    pdf.set_font('Arial', '', 10)
+    pdf.set_text_color(50, 50, 50)
+    pdf.set_x(12)
+    pdf.cell(0, 5, f"Sr(a): {cliente_nombre}", ln=True)
+    pdf.set_x(12)
+    pdf.cell(0, 5, f"Lugar de Trabajo / Servicio: {lugar_nombre}", ln=True)
+    pdf.ln(8)
+    
+    # --- TABLA DE CARGOS COBRADOS ---
+    # Encabezados de tabla
+    pdf.set_fill_color(34, 139, 34)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font('Arial', 'B', 10)
+    
+    pdf.cell(140, 8, "Descripción del Cargo / Período", border=1, ln=False, align='L', fill=True)
+    pdf.cell(50, 8, "Subtotal", border=1, ln=True, align='R', fill=True)
+    
+    # Contenido dinámico
+    pdf.set_font('Arial', '', 10)
+    pdf.set_text_color(50, 50, 50)
+    
+    for item in items:
+        # Alternar color de fondo ligero para las filas
+        pdf.cell(140, 7, f" {item['descripcion']}", border=1, ln=False, align='L')
+        pdf.cell(50, 7, f"{formato_moneda(item['monto'])} ", border=1, ln=True, align='R')
+        
+    # Fila de Abonos (si aplica)
+    if abono > 0:
+        pdf.set_font('Arial', 'I', 10)
+        pdf.set_text_color(150, 0, 0) # Texto rojo sutil para el descuento
+        pdf.cell(140, 7, " Abonos / Pagos Parciales Recibidos (Descuento)", border=1, ln=False, align='L')
+        pdf.cell(50, 7, f"-{formato_moneda(abono)} ", border=1, ln=True, align='R')
+        
+    # Fila Gran Total Final
+    pdf.set_font('Arial', 'B', 11)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_fill_color(230, 245, 230) # Fondo verde muy claro para resaltar el total
+    pdf.cell(140, 8, " TOTAL SALDO PENDIENTE A PAGO", border=1, ln=False, align='L', fill=True)
+    pdf.cell(50, 8, f"{formato_moneda(total)} ", border=1, ln=True, align='R', fill=True)
+    
+    pdf.ln(15)
+    
+    # Nota de cierre o pie de página ejecutable
+    pdf.set_font('Arial', 'I', 9)
+    pdf.set_text_color(120, 120, 120)
+    pdf.cell(0, 5, "Para dudas o transferencias relativas a este estado de cuenta, favor usar las vías de contacto del encabezado.", ln=True, align='center')
+    
+    # Guardar en un archivo temporal y retornar bytes
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        pdf.output(tmp.name)
+        with open(tmp.name, "rb") as f:
+            pdf_bytes = f.read()
+            
+    try:
+        os.unlink(tmp.name)
+    except:
+        pass
+        
+    lugar_slug = lugar_nombre.replace(" ", "_").strip()
+    file_name = f"Estado_Cuenta_{lugar_slug}.pdf"
+    
+    return pdf_bytes, file_name

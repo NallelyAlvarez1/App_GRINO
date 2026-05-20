@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
 from utils.db import get_clientes, get_lugares_trabajo, get_supabase_client
+from utils.pdf import generar_pdf_estado_cuenta
 
 st.header("📄 Generar Estado de Cuenta Mensual")
 
@@ -10,7 +11,11 @@ if not user_id:
     st.warning("⚠️ Debes iniciar sesión para acceder a este módulo.")
     st.stop()
 
-# 1. Datos del Cliente y Lugar (Reutilizando tu lógica)
+# Inicializar estados de la sesión si no existen
+if 'items_estado_cuenta' not in st.session_state:
+    st.session_state.items_estado_cuenta = []
+
+# 1. Datos del Cliente y Lugar
 col1, col2 = st.columns(2)
 with col1:
     clientes = get_clientes(user_id)
@@ -27,114 +32,148 @@ with col2:
     else:
         st.error("No tienes lugares de trabajo registrados.")
         st.stop()
-        
-# 2. Selección de Período, Monto Base y Abonos
-st.subheader("📆 Período de Cobro y Valores")
-col_mes, col_ano, col_base, col_abono = st.columns(4)
+
+st.write("---")
+
+# 2. Agregar Conceptos al Estado de Cuenta (Meses o Servicios Extra)
+st.subheader("➕ Agregar Cargos al Estado de Cuenta")
+
+tab_mes, tab_servicio = st.tabs(["📆 Agregar Mes de Mantención", "🛠️ Agregar Servicio Adicional"])
 
 meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 ano_actual = datetime.datetime.now().year
 
-with col_mes:
-    mes_cobro = st.selectbox("Mes Cobrado", range(1, 13), format_func=lambda x: meses[x-1], index=datetime.datetime.now().month - 1)
-with col_ano:
-    ano_cobro = st.selectbox("Año Cobrado", [ano_actual - 1, ano_actual, ano_actual + 1], index=1)
-with col_base:
-    monto_base = st.number_input("Monto Base Mensual ($)", min_value=0, value=0, step=5000)
-with col_abono:
-    abono_monto = st.number_input("Abono / Pago Recibido ($)", min_value=0, value=0, step=5000)
+with tab_mes:
+    col_m, col_a, col_b, col_btn_m = st.columns([2, 2, 2, 1])
+    with col_m:
+        mes_cobro = st.selectbox("Mes", range(1, 13), format_func=lambda x: meses[x-1], key="sel_mes")
+    with col_a:
+        ano_cobro = st.selectbox("Año", [ano_actual - 1, ano_actual, ano_actual + 1], index=1, key="sel_ano")
+    with col_b:
+        monto_base = st.number_input("Monto Base ($)", min_value=0, value=0, step=5000, key="num_base")
+    with col_btn_m:
+        st.write("<br>", unsafe_allow_html=True)
+        if st.button("Añadir Mes", key="btn_add_mes"):
+            desc_mes = f"Mantención Mensual Base - {meses[mes_cobro-1]} {ano_cobro}"
+            st.session_state.items_estado_cuenta.append({
+                "tipo": "mes_base",
+                "descripcion": desc_mes,
+                "monto": monto_base,
+                "mes_num": mes_cobro,
+                "anio_num": ano_cobro
+            })
+            st.rerun()
 
-# 3. Servicios Adicionales (Tabla dinámica)
-st.subheader("➕ Servicios Adicionales / Cargos Extras")
-
-# Inicializar el estado para los items extras si no existen
-if 'servicios_extras' not in st.session_state:
-    st.session_state.servicios_extras = []
-    
-# Formulario rápido para añadir una fila extra
-with st.expander("Añadir Servicio Adicional"):
-    col_desc, col_monto, col_btn = st.columns([3, 2, 1])
+with tab_servicio:
+    col_desc, col_monto, col_btn_s = st.columns([4, 2, 1])
     with col_desc:
-        desc_extra = st.text_input("Descripción del servicio", key="input_desc_extra")
+        desc_extra = st.text_input("Descripción del Servicio Extra", key="input_desc_extra")
     with col_monto:
         monto_extra = st.number_input("Valor ($)", min_value=0, step=1000, key="input_monto_extra")
-    with col_btn:
-        st.write("<br>", unsafe_allow_html=True) # Alinear botón
-        if st.button("Añadir", width=100):
+    with col_btn_s:
+        st.write("<br>", unsafe_allow_html=True)
+        if st.button("Añadir Servicio", key="btn_add_servicio"):
             if desc_extra:
-                st.session_state.servicios_extras.append({
+                st.session_state.items_estado_cuenta.append({
+                    "tipo": "servicio_extra",
                     "descripcion": desc_extra,
-                    "monto": monto_extra
+                    "monto": monto_extra,
+                    "mes_num": None,
+                    "anio_num": None
                 })
                 st.rerun()
 
-# Calcular Totales en tiempo real
-total_extras = sum(item['monto'] for item in st.session_state.servicios_extras)
-total_final = (monto_base + total_extras) - abono_monto
-
-# Mostrar los servicios añadidos actualmente si existen
-if st.session_state.servicios_extras:
-    st.markdown("#### Desglose de Servicios Extra:")
-    for i, item in enumerate(st.session_state.servicios_extras):
-        c1, c2, c3 = st.columns([3, 2, 1])
-        c1.write(f"• {item['descripcion']}")
+# 3. Desglose de Cargos y Abonos Globales
+if st.session_state.items_estado_cuenta:
+    st.write("---")
+    st.subheader("📋 Detalle del Estado de Cuenta Actual")
+    
+    total_cargos = 0
+    for i, item in enumerate(st.session_state.items_estado_cuenta):
+        c1, c2, c3 = st.columns([4, 2, 1])
+        prefix = "📆" if item["tipo"] == "mes_base" else "🛠️"
+        c1.write(f"{prefix} {item['descripcion']}")
         c2.write(f"${item['monto']:,}".replace(",", "."))
         if c3.button("❌", key=f"del_{i}"):
-            st.session_state.servicios_extras.pop(i)
+            st.session_state.items_estado_cuenta.pop(i)
             st.rerun()
+        total_cargos += item['monto']
+        
     st.write("---")
-
-# Cuadro resumen informativo
-st.markdown(f"""
-### Resumen del Saldo
-* **Mantención Base:** ${monto_base:,}
-* **Total Servicios Extras:** ${total_extras:,}
-* **Abonos Aplicados:** -${abono_monto:,}
-### **Total Saldo Pendiente:** ${total_final:,}
-""".replace(",", "."))
-
-# 4. Botón de Guardar y Procesar en la Base de Datos
-if st.button("💾 Guardar Estado de Cuenta", type="primary", use_container_width=True):
-    supabase = get_supabase_client()
+    col_space, col_abono_field = st.columns([4, 3])
+    with col_abono_field:
+        abono_monto = st.number_input("Abono / Pago Recibido a Descontar ($)", min_value=0, value=0, step=5000)
+        
+    total_final = total_cargos - abono_monto
     
-    try:
-        # Preparar inserción cabecera
-        estado_cuenta_data = {
-            "user_id": user_id,
-            "cliente_id": cliente_seleccionado[0],
-            "lugar_trabajo_id": lugar_seleccionado[0],
-            "mes_num": mes_cobro,
-            "anio_num": ano_cobro,
-            "monto_base": monto_base,
-            "abono_monto": abono_monto,
-            "total_neto": total_final,
-            "fecha_emision": datetime.date.today().isoformat()
-        }
-        
-        # Insertar cabecera en 'estados_cuenta'
-        response = supabase.table("estados_cuenta").insert(estado_cuenta_data).execute()
-        
-        if response.data:
-            nuevo_id = response.data[0]['id']
+    # Cuadro Resumen Informativo
+    st.markdown(f"""
+    ### Resumen del Saldo
+    * **Subtotal Cargos Añadidos:** ${total_cargos:,}
+    * **Abonos Aplicados:** -${abono_monto:,}
+    ### **Total Saldo Pendiente:** ${total_final:,}
+    """.replace(",", "."))
+    
+    # 4. Guardar y Descargar PDF
+    if st.button("💾 Guardar y Generar PDF", type="primary", use_container_width=True):
+        supabase = get_supabase_client()
+        try:
+            # Para mantener compatibilidad con la base de datos, guardamos el primer mes/año de referencia en la cabecera
+            primer_mes = next((x["mes_num"] for x in st.session_state.items_estado_cuenta if x["mes_num"]), datetime.datetime.now().month)
+            primer_ano = next((x["anio_num"] for x in st.session_state.items_estado_cuenta if x["anio_num"]), datetime.datetime.now().year)
             
-            # Insertar los servicios adicionales si existen
-            if st.session_state.servicios_extras:
+            estado_cuenta_data = {
+                "user_id": user_id,
+                "cliente_id": cliente_seleccionado[0],
+                "lugar_trabajo_id": lugar_seleccionado[0],
+                "mes_num": primer_mes,
+                "anio_num": primer_ano,
+                "monto_base": next((x["monto"] for x in st.session_state.items_estado_cuenta if x["tipo"] == "mes_base"), 0),
+                "abono_monto": abono_monto,
+                "total_neto": total_final,
+                "fecha_emision": datetime.date.today().isoformat()
+            }
+            
+            response = supabase.table("estados_cuenta").insert(estado_cuenta_data).execute()
+            
+            if response.data:
+                nuevo_id = response.data[0]['id']
+                
+                # Insertamos todos los ítems agregados (tanto meses base como servicios extras) en la tabla detalles
                 items_a_insertar = []
-                for item in st.session_state.servicios_extras:
+                for item in st.session_state.items_estado_cuenta:
                     items_a_insertar.append({
                         "estado_cuenta_id": nuevo_id,
                         "descripcion": item['descripcion'],
                         "monto": item['monto']
                     })
                 supabase.table("detalles_estado_cuenta").insert(items_a_insertar).execute()
-            
-            st.success(f"✅ Estado de cuenta N° {nuevo_id} guardado correctamente en Supabase.")
-            
-            # Limpiar servicios del estado tras un guardado exitoso
-            st.session_state.servicios_extras = []
-            st.rerun()
-        else:
-            st.error("❌ No se pudo guardar el registro principal.")
-            
-    except Exception as e:
-        st.error(f"❌ Error al procesar en la Base de Datos: {str(e)}")
+                
+                # Generar bytes del PDF usando el módulo de impresión
+                pdf_bytes, file_name = generar_pdf_estado_cuenta(
+                    id_documento=nuevo_id,
+                    cliente_nombre=cliente_seleccionado[1],
+                    lugar_nombre=lugar_seleccionado[1],
+                    items=st.session_state.items_estado_cuenta,
+                    abono=abono_monto,
+                    total=total_final
+                )
+                
+                st.success(f"✅ Estado de Cuenta N° {nuevo_id} guardado correctamente.")
+                
+                # Botón de descarga para el cliente
+                st.download_button(
+                    label="📥 Descargar PDF Estado de Cuenta",
+                    data=pdf_bytes,
+                    file_name=file_name,
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+                
+                # Limpiar el carro
+                st.session_state.items_estado_cuenta = []
+                
+        except Exception as e:
+            st.error(f"❌ Error al procesar: {str(e)}")
+else:
+    st.info("💡 Comienza agregando meses de mantención o servicios adicionales para conformar el Estado de Cuenta.")
