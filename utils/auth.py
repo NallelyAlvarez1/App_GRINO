@@ -39,6 +39,7 @@ def authenticate(email: str, password: str) -> bool:
         return False
 
 
+# utils/auth.py (Reemplaza o adapta tu función register_user)
 
 def register_user(email: str, password: str, full_name: str, phone: str, empresa: str) -> bool:
     """

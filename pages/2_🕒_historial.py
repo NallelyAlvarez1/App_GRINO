@@ -17,8 +17,6 @@ try:
 except ImportError:
     def mostrar_boton_descarga_estado_cuenta(id): return None, "", False
 
-st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
-
 st.markdown("""
 <style>
 .stTextInput, .stNumberInput, .stSelectbox, .stButton {
@@ -38,7 +36,7 @@ h2, h3, h4 {
 # -----------------------------------------------------------
 # 1. SEGURIDAD Y CONFIGURACIÓN
 # -----------------------------------------------------------
-
+st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 st.header("🕒 Historial General de Documentos")
 
 is_logged_in = check_login()

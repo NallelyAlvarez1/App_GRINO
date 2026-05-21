@@ -16,43 +16,10 @@ if 'usuario' not in st.session_state:
 
 is_logged_in = check_login()
 
+
+# ------------------- Contenido Principal de la App -------------------
 if is_logged_in:
     supabase = get_supabase_client()
-
-    # Si el usuario está logueado y aún no cargamos sus datos corporativos en la sesión:
-    if 'datos_perfil' not in st.session_state and st.session_state.get('user_id'):
-        try:
-            # 1. Traemos los datos nativos desde Auth (Nombre y Teléfono)
-            user_info = supabase.auth.get_user()
-            full_name = "Usuario"
-            phone = ""
-            if user_info and user_info.user:
-                full_name = user_info.user.user_metadata.get("display_name", "Usuario")
-                phone = user_info.user.user_metadata.get("phone", "")
-
-            # 2. Consultamos la tabla pública para obtener la Empresa mediante el UID
-            res_empresa = supabase.table("perfiles_empresa")\
-                .select("empresa")\
-                .eq("id", st.session_state.user_id)\
-                .single().execute()
-            
-            nombre_empresa = res_empresa.data.get("empresa", "Mi Empresa") if res_empresa.data else "Mi Empresa"
-
-            # 3. Guardamos todo empaquetado en el session_state para consumirlo fácil
-            st.session_state.datos_perfil = {
-                "nombre": full_name,
-                "telefono": phone,
-                "empresa": nombre_empresa,
-                "email": st.session_state.usuario  # El email del usuario logueado
-            }
-        except Exception as e:
-            # Fallback seguro por si ocurre algún inconveniente en la consulta
-            st.session_state.datos_perfil = {
-                "nombre": st.session_state.usuario,
-                "telefono": "",
-                "empresa": "Mi Empresa",
-                "email": st.session_state.usuario
-            }
 
     with st.sidebar:
         st.markdown("**👤 Usuario:**")
@@ -219,32 +186,25 @@ else:
                     if authenticate(email, password):
                         st.rerun()
                     else:
-                        st.error("❌ Credenciales incorrectas o usuario no existe.v")
+                        st.error("❌ Credenciales incorrectas o usuario no existe.")
 
     with tabs[1]:
-            st.markdown("##### Crear una Cuenta")
-            with st.form("register_form"):
+        st.markdown("##### Crear una Cuenta")
+        with st.form("register_form"):
 
-                full_name = st.text_input("Nombre Completo", key="reg_full_name").strip()
-                
-                # --- NUEVOS INPUTS VISUALES ---
-                telefono_reg = st.text_input("Número de Contacto (Ej: +56912345678)", key="reg_telefono").strip()
-                empresa_reg = st.text_input("Nombre de la Empresa", key="reg_empresa").strip()
-                # -------------------------------
+            full_name = st.text_input("Nombre Completo", key="reg_full_name").strip()
+            email_reg = st.text_input("Correo electrónico", key="reg_email").strip().lower()
+            password_reg = st.text_input("Contraseña (mínimo 6 caracteres)", type="password", key="reg_password")
+            password_confirm = st.text_input("Confirmar Contraseña", type="password", key="reg_confirm")
 
-                email_reg = st.text_input("Correo electrónico", key="reg_email").strip().lower()
-                password_reg = st.text_input("Contraseña (mínimo 6 caracteres)", type="password", key="reg_password")
-                password_confirm = st.text_input("Confirmar Contraseña", type="password", key="reg_confirm")
-
-                if st.form_submit_button("Registrar", type="secondary", width='stretch'):
-                    if not email_reg or not password_reg or not full_name or not empresa_reg:
-                        st.error("⚠️ Por favor ingrese su nombre, empresa, correo y contraseña.")
-                    elif password_reg != password_confirm:
-                        st.error("❌ Las contraseñas no coinciden.")
-                    elif len(password_reg) < 6:
-                        st.error("❌ La contraseña debe tener al menos 6 caracteres.")
-                    # Llamamos a nuestra nueva función pasando todos los datos:
-                    elif register_user(email_reg, password_reg, full_name, telefono_reg, empresa_reg):
-                        st.success("📩 Verifica tu email para completar el registro.")
-                    else:
-                        st.error("❌ Error al registrar el usuario. El correo puede estar en uso.")
+            if st.form_submit_button("Registrar", type="secondary", width='stretch'):
+                if not email_reg or not password_reg or not full_name:
+                    st.error("⚠️ Por favor ingrese su nombre, correo y contraseña.")
+                elif password_reg != password_confirm:
+                    st.error("❌ Las contraseñas no coinciden.")
+                elif len(password_reg) < 6:
+                    st.error("❌ La contraseña debe tener al menos 6 caracteres.")
+                elif register_user(email_reg, password_reg, full_name):
+                    st.success("📩 Verifica tu email para completar el registro.")
+                else:
+                    st.error("❌ Error al registrar el usuario. El correo puede estar en uso.")
