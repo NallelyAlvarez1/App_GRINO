@@ -25,16 +25,22 @@ def formato_moneda(valor: float) -> str:
     return f"${valor:,.0f}".replace(",", ".")
 
 # ==========  SECCION PDF ==========
-# Datos constantes
-EMPRESA = "Jardines Alvarez"
-CONTACTO_NOMBRE = "Jhonny Nicolas Alvarez"
-CONTACTO_TELEFONO = "+569 6904 2513"
-CONTACTO_EMAIL = "jhonnynicolasalvarez@gmail.com"
+def generar_pdf(
+    cliente_nombre: str, 
+    categorias: Dict[str, Any], 
+    lugar_cliente: str, 
+    datos_emisor: Dict[str, str],  # <-- NUEVO PARÁMETRO
+    descripcion: Optional[str] = None
+) -> str:
+    """
+    Genera el PDF usando los datos dinámicos mapeados a los nombres originales.
+    """
+    # mapeamos los datos dinámicos a los mismos nombres para no cambiar el resto del código
+    EMPRESA = datos_emisor.get("empresa", "Mi Empresa")
+    CONTACTO_NOMBRE = datos_emisor.get("nombre", "Contacto")
+    CONTACTO_TELEFONO = datos_emisor.get("telefono", "")
+    CONTACTO_EMAIL = datos_emisor.get("email", "")
 
-def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: str, descripcion: Optional[str] = None) -> str:
-    """
-    Genera un archivo PDF con los datos del presupuesto
-    """
     try:
         pdf = FPDF()
         pdf.add_page()
@@ -316,6 +322,7 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
         
     except Exception as e:
         raise Exception(f"Error al generar PDF: {str(e)}")
+    
 def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], str, bool]:
     """
     Genera y devuelve los bytes de un PDF y el nombre de archivo sugerido
@@ -375,11 +382,25 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], st
         print(error_msg)
         return None, "", False
     
-def generar_pdf_estado_cuenta(id_documento: int, cliente_nombre: str, lugar_nombre: str, items: list, abono: float, total: float) -> Tuple[bytes, str]:
+def generar_pdf_estado_cuenta(
+    id_documento: int, 
+    cliente_nombre: str, 
+    lugar_nombre: str, 
+    items: list, 
+    abono: float, 
+    total: float,
+    datos_emisor: Dict[str, str]  # <-- NUEVO PARÁMETRO AL FINAL
+) -> Tuple[bytes, str]:
     """
-    Generar un archivo PDF con el diseño corporativo de Jardines Alvarez
-    adaptado para múltiples meses y cobros en el Estado de Cuenta.
+    Genera el PDF del Estado de Cuenta mapeando dinámicamente los datos del emisor
+    a las constantes originales para no romper el diseño interno.
     """
+    # Mapeo dinámico: reusamos los nombres exactos que ya usas en tu código
+    EMPRESA = datos_emisor.get("empresa", "Mi Empresa")
+    CONTACTO_NOMBRE = datos_emisor.get("nombre", "Contacto")
+    CONTACTO_TELEFONO = datos_emisor.get("telefono", "")
+    CONTACTO_EMAIL = datos_emisor.get("email", "")
+    
     import tempfile
     try:
         pdf = FPDF()
