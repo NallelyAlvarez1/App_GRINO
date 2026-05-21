@@ -40,6 +40,8 @@ from utils.components import (
 from utils.autosave import AutoSaveManager
 from utils.autosave import capture_current_state, restore_draft_state
 
+st.set_page_config(page_title="Editar", page_icon="🌱", layout="wide")
+
 # Configuración de página y CSS
 st.markdown("""
 <style>
@@ -76,7 +78,7 @@ div[data-testid="stText"] { margin-bottom: 0px !important; margin-top: 0px !impo
 
 
 
-st.set_page_config(page_title="Editar", page_icon="🌱", layout="wide")
+
 st.header("✏️ Editar presupuesto")
 
 # ----- autenticación -----

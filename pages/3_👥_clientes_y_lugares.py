@@ -12,6 +12,8 @@ from utils.db import (
 )
 from datetime import datetime
 
+st.set_page_config(page_title="Clientes", page_icon="🌱", layout="wide")
+
 # ------------------ ESTILOS ------------------
 st.markdown("""
 <style>
@@ -34,7 +36,7 @@ h2, h3, h4 {
 </style>
 """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="Clientes", page_icon="🌱", layout="wide")
+
 
 # ------------------ LOGIN ------------------
 is_logged_in = check_login()
