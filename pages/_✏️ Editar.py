@@ -89,7 +89,7 @@ if not is_logged_in:
     for percent_complete in range(100):
         time.sleep(0.05)
         progress_bar.progress(percent_complete + 1)
-    st.switch_page("🌱_App_principal.py")
+    st.switch_page("App_principal.py")
     st.stop()
 
 with st.sidebar:
@@ -295,7 +295,7 @@ presupuestos_opciones = get_presupuestos_para_selector(user_id)
 
 if not presupuestos_opciones:
     st.warning("No tienes presupuestos para editar.")
-    st.page_link("🌱_App_principal.py", label="Crear un nuevo presupuesto")
+    st.page_link("App_principal.py", label="Crear un nuevo presupuesto")
     st.stop()
 
 # VERIFICAR SI VIENE DEL HISTORIAL CON UN PRESUPUESTO ESPECÍFICO
