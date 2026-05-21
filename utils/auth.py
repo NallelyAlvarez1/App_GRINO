@@ -39,41 +39,36 @@ def authenticate(email: str, password: str) -> bool:
         return False
 
 
-# utils/auth.py (Reemplaza o adapta tu función register_user)
-
-def register_user(email: str, password: str, full_name: str, phone: str, empresa: str) -> bool:
-    """
-    Registra un usuario en Supabase Auth y crea su registro de empresa en la tabla pública.
-    """
+def register_user(email: str, password: str, full_name: str) -> bool:
+    """Registra un nuevo usuario en Supabase Auth."""
     supabase = get_supabase_client()
     try:
-        # 1. Registrar en Supabase Auth pasándole nombre y teléfono en las opciones nativas
-        auth_response = supabase.auth.sign_up({
-            "email": email,
+        # Limpiar y normalizar el email
+        clean_email = email.strip().lower()
+        
+        response = supabase.auth.sign_up({
+            "email": clean_email,
             "password": password,
             "options": {
                 "data": {
-                    "display_name": full_name,
-                    "phone": phone
+                    "full_name": full_name,
+                    "email": clean_email
                 }
             }
         })
         
-        # 2. Si el registro en Auth fue exitoso y nos dio un UID
-        if auth_response and auth_response.user:
-            user_id = auth_response.user.id
-            
-            # 3. Insertar el nombre de la empresa en nuestra nueva tabla vinculada al UID
-            supabase.table("perfiles_empresa").insert({
-                "id": user_id,
-                "empresa": empresa
-            }).execute()
-            
+        if response.user:
+            st.success("✅ Usuario registrado correctamente. Por favor, verifica tu email.")
             return True
+        elif response.error:
+            st.error(f"❌ Error al registrar: {response.error.message}")
+            return False
+        else:
+            st.error("❌ Error desconocido al registrar usuario")
+            return False
             
-        return False
     except Exception as e:
-        st.error(f"Error en el registro: {e}")
+        st.error(f"❌ Error en registro: {str(e)}")
         return False
 
 def sign_out():
