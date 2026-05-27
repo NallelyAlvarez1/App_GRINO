@@ -469,7 +469,7 @@ with col_izq:
     with col_unidad:
         unidad = st.selectbox(
             "Unidad:", 
-            ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha"], 
+            ["m²", "m³", "Unidad", "Metro lineal", "Saco", "Metro", "Caja", "Kilo (kg)", "Galón (gal)", "Litro", "Par/Juego", "Plancha", "Hora"], 
             key="unidad_principal"
         )
     col_cantidad, col_precio, col_total = st.columns(3)
