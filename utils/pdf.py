@@ -366,7 +366,7 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], st
         
         # Nombre del archivo
         lugar_nombre = presupuesto['lugar']['nombre'].strip().replace(" ", "_")
-        file_name = f"Presupuesto_{lugar_nombre}.pdf"
+        file_name = f"Presupuesto {'lugar'}.pdf"
 
         return pdf_bytes, file_name, True
         
