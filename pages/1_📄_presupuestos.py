@@ -293,10 +293,25 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
 
                     with col1:
 
-                        mostrar_boton_descarga_pdf(
-                            presupuesto_id,
-                            label="⬇ Descargar presupuesto"
+                        pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(
+                            presupuesto_id
                         )
+
+                        if success and pdf_bytes:
+                            st.download_button(
+                                label="⬇ Descargar presupuesto",
+                                data=pdf_bytes,
+                                file_name=file_name,
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key=f"download_new_{presupuesto_id}"
+                            )
+                        else:
+                            st.button(
+                                "🚫 Error PDF",
+                                disabled=True,
+                                use_container_width=True
+                            )
 
                     with col2:
                         if st.button("🔄 Crear otro presupuesto", use_container_width=True):
