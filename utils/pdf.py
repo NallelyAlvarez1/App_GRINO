@@ -1,8 +1,6 @@
 import tempfile
 import os
 import base64
-from turtle import st
-import streamlit
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any
 from fpdf import FPDF
@@ -319,32 +317,26 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
     except Exception as e:
         raise Exception(f"Error al generar PDF: {str(e)}")
     
-def mostrar_boton_descarga_pdf(presupuesto_id: int, label: str = "📄 Descargar PDF") -> bool:
+def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], str, bool]:
     """
-    Genera un PDF y muestra automáticamente el botón de descarga.
-    Retorna True si todo salió bien.
+    Genera y devuelve los bytes de un PDF y el nombre de archivo sugerido
     """
     try:
+        # Obtener datos del presupuesto
         presupuesto = get_presupuesto_detallado(presupuesto_id)
-
         if not presupuesto:
-            st.error("No se encontró el presupuesto")
-            return False
-
+            return None, "", False
+        
+        # Procesar items por categoría
         categorias = {}
-
         for item in presupuesto.get('items', []):
             cat_nombre = item.get('categoria') or 'Sin categoría'
-
             if cat_nombre not in categorias:
-                categorias[cat_nombre] = {
-                    'items': [],
-                    'mano_obra': 0
-                }
+                categorias[cat_nombre] = {'items': [], 'mano_obra': 0}
+            
 
             if item.get('nombre') == 'Mano de Obra':
                 categorias[cat_nombre]['mano_obra'] = item.get('precio_unitario', 0)
-
             else:
                 categorias[cat_nombre]['items'].append({
                     'nombre': item.get('nombre', 'Sin nombre'),
@@ -354,38 +346,35 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int, label: str = "📄 Descargar
                     'total': item.get('total', 0),
                     'descripcion': item.get('notas', '')
                 })
-
+            
+        # Generar PDF
         pdf_path = generar_pdf(
             presupuesto['cliente']['nombre'],
             categorias,
             presupuesto['lugar']['nombre'],
             descripcion=presupuesto.get('descripcion', ''),
         )
-
+        
+        # Leer el PDF
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
-
+        
+        # Eliminar archivo temporal
         try:
             os.unlink(pdf_path)
         except Exception as e:
             print(f"Error al eliminar archivo temporal: {str(e)}")
-
+        
+        # Nombre del archivo
         lugar_nombre = presupuesto['lugar']['nombre'].strip().replace(" ", "_")
         file_name = f"Presupuesto_{lugar_nombre}.pdf"
 
-        st.download_button(
-            label=label,
-            data=pdf_bytes,
-            file_name=file_name,
-            mime="application/pdf",
-            use_container_width=True
-        )
-
-        return True
-
+        return pdf_bytes, file_name, True
+        
     except Exception as e:
-        st.error(f"Error al generar PDF: {str(e)}")
-        return False
+        error_msg = f"Error al generar PDF: {str(e)}"
+        print(error_msg)
+        return None, "", False
     
 def generar_pdf_estado_cuenta(id_documento: int, cliente_nombre: str, lugar_nombre: str, items: list, abono: float, total: float) -> Tuple[bytes, str]:
     """
