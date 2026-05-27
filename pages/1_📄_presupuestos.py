@@ -3,7 +3,7 @@ import streamlit as st
 import os
 import time
 import uuid
-from utils.pdf import generar_pdf
+from utils.pdf import generar_pdf, mostrar_boton_descarga_pdf
 from utils.auth import check_login, sign_out
 from utils.components import (
     show_cliente_lugar_selector,
@@ -290,14 +290,10 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                     autosave_manager.clear_draft()
 
                     col1, col2, col3 = st.columns(3)
+
                     with col1:
-                        st.download_button(
-                            "📄 Descargar PDF",
-                            pdf_bytes,
-                            file_name=f"presupuesto_{presupuesto_id}.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
+                        mostrar_boton_descarga_pdf(presupuesto_id)
+
                     with col2:
                         if st.button("🔄 Crear otro presupuesto", use_container_width=True):
                             for key in ['categorias', 'descripcion', 'items_data']:
