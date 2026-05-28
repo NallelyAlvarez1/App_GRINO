@@ -25,18 +25,16 @@ if is_logged_in:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
-        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
+        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True, key="btn_cerrar_sesion_sidebar"):
             sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
             st.rerun()
         st.divider()
-    
-    st.header("🌱GRINO - Gestión de Presupuestos 🛠️")
 
-    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
+    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (BOTÓN INTEGRADO) ------------------
     st.markdown("""
     <style>
-    /* Fondo general de la app para que contrasten las tarjetas */
+    /* Fondo general de la app */
     .stApp {
         background-color: #f8fafc;
     }
@@ -73,7 +71,7 @@ if is_logged_in:
         font-weight: 600;
     }
 
-    /* Sección de Funcionalidades / Misiones */
+    /* Sección de Funcionalidades */
     .section-title {
         color: #1e293b;
         font-size: 1.4rem;
@@ -92,12 +90,11 @@ if is_logged_in:
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         border: 1px solid #f1f5f9;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        height: 310px;
+        height: 340px; /* Un poco más alta para dar espacio al botón */
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        margin-bottom: 15px;
+        justify-content: flex-start;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .card-img-container {
@@ -129,50 +126,45 @@ if is_logged_in:
         margin: 0;
     }
 
-    /* ================= TRUCO CAPA INVISIBLE (STREAMLIT NATIVO) ================= */
+    /* ================= ESTILO DEL BOTÓN INTEGRADO DENTRO DE LA TARJETA ================= */
     
-    /* Convertimos la columna en un contenedor relativo para posicionar el botón encima */
-    div[data-testid="column"] {
-        position: relative;
-    }
-
-    /* Forzamos al contenedor del botón a ocupar todo el espacio de la columna */
+    /* Empujamos el botón hacia arriba para meterlo visualmente en la tarjeta */
     div[data-testid="column"] div.stButton {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 10; /* Se posiciona POR ENCIMA de la tarjeta HTML */
+        margin-top: -75px; 
+        padding-left: 24px;
+        padding-right: 24px;
+        position: relative;
+        z-index: 10;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Volvemos el botón completamente invisible pero funcional */
+    /* Diseño estilizado del botón nativo (Verde esmeralda moderno) */
     div[data-testid="column"] div.stButton > button {
-        width: 100% !important;
-        height: 310px !important; /* Misma altura que la tarjeta */
-        background-color: transparent !important;
-        color: transparent !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        background-color: #10b981 !important;
+        color: white !important;
         border: none !important;
-        box-shadow: none !important;
-        cursor: pointer;
-    }
-    
-    /* Evitamos cambios visuales raros cuando se pasa el mouse sobre el botón invisible */
-    div[data-testid="column"] div.stButton > button:hover, 
-    div[data-testid="column"] div.stButton > button:active, 
-    div[data-testid="column"] div.stButton > button:focus {
-        background-color: transparent !important;
-        color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2) !important;
+        transition: all 0.2s ease !important;
     }
 
-    /* Como el botón está arriba, el hover original de la tarjeta no se activaría. 
-       Lo arreglamos haciendo que la tarjeta reaccione cuando se pasa el mouse por la COLUMNA */
+    /* Efecto Hover específico del botón */
+    div[data-testid="column"] div.stButton > button:hover {
+        background-color: #059669 !important; /* Verde más oscuro al pasar el mouse */
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    /* EFECTO HOVER COMPUESTO: Cuando el usuario pasa el mouse por CUALQUIER parte 
+       de la columna, la tarjeta y el botón se elevan juntos en perfecta sintonía */
     div[data-testid="column"]:hover .modern-card {
-        transform: translateY(-5px);
+        transform: translateY(-6px);
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         border-color: #cbd5e1;
+    }
+    
+    div[data-testid="column"]:hover div.stButton {
+        transform: translateY(-6px);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -193,7 +185,7 @@ if is_logged_in:
     # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
     st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
 
-    # Volvemos a los paths de archivos originales para st.switch_page
+    # Datos de las páginas
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
@@ -232,7 +224,7 @@ if is_logged_in:
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS CON CAPA INVISIBLE
+    # 3. RENDERIZADO EN COLUMNAS
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
@@ -243,7 +235,7 @@ if is_logged_in:
             except Exception:
                 img_src = "https://via.placeholder.com/150"
 
-            # Render de la tarjeta (Es HTML puro estático, ya no tiene etiquetas <a>)
+            # Render de la tarjeta HTML (dejamos un espacio vacío abajo de 60px para el botón)
             st.markdown(
                 f"""
                 <div class="modern-card">
@@ -254,14 +246,14 @@ if is_logged_in:
                         <h3>{pagina['titulo']}</h3>
                         <p>{pagina['descripcion']}</p>
                     </div>
+                    <div style="height: 60px;"></div> 
                 </div>
                 """,
                 unsafe_allow_html=True
             )
             
-            # Este botón se vuelve invisible mediante el CSS de arriba y se estira sobre la tarjeta.
-            # Al ser presionado ejecuta st.switch_page sin romper la sesión.
-            if st.button("Ir", key=pagina['key'], use_container_width=True):
+            # El botón nativo se renderiza aquí y el CSS lo posiciona perfectamente en el espacio en blanco
+            if st.button("Ingresar →", key=pagina['key'], use_container_width=True):
                 st.switch_page(pagina['pagina'])
 
     # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
