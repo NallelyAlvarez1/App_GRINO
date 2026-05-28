@@ -25,16 +25,16 @@ if is_logged_in:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
-        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True, key="btn_cerrar_sesion_sidebar"):
+        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
             sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
             st.rerun()
         st.divider()
 
-    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (DISEÑO PASTILLA + IMAGEN CLIQUEABLE) ------------------
+    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
     st.markdown("""
     <style>
-    /* Fondo general de la app */
+    /* Fondo general de la app para que contrasten las tarjetas */
     .stApp {
         background-color: #f8fafc;
     }
@@ -71,7 +71,7 @@ if is_logged_in:
         font-weight: 600;
     }
 
-    /* Sección de Funcionalidades */
+    /* Sección de Funcionalidades / Misiones */
     .section-title {
         color: #1e293b;
         font-size: 1.4rem;
@@ -82,7 +82,7 @@ if is_logged_in:
         gap: 8px;
     }
 
-    /* Tarjetas Modernas (Altura fija reducida porque el botón va abajo afuera) */
+    /* Tarjetas Modernas */
     .modern-card {
         background: white;
         border-radius: 18px;
@@ -90,11 +90,18 @@ if is_logged_in:
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         border: 1px solid #f1f5f9;
-        height: 255px; 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 310px;
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
-        transition: all 0.3s ease;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #cbd5e1;
     }
 
     .card-img-container {
@@ -125,61 +132,25 @@ if is_logged_in:
         line-height: 1.4;
         margin: 0;
     }
-
-    /* ================= CONTROL DE POSICIONAMIENTO DE BOTONES ================= */
     
-    div[data-testid="column"] {
-        position: relative;
+    /* Ajuste para los botones nativos de Streamlit debajo de las tarjetas */
+    div.stButton > button {
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.2s;
     }
-
-    /* 1. BOTÓN INVISIBLE (Encima de la Imagen) */
-    div[data-testid="column"] div.stButton:nth-of-type(1) {
-        position: absolute;
-        top: 24px;      /* Alineado con el padding de la tarjeta */
-        left: 24px;     /* Alineado con el padding de la tarjeta */
-        right: 24px;
-        height: 114px;  /* Cubre exactamente el contenedor de la imagen */
-        z-index: 10;
-    }
-    div[data-testid="column"] div.stButton:nth-of-type(1) > button {
-        background: transparent !important;
-        color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        width: 100% !important;
-        height: 100% !important;
-        cursor: pointer;
-    }
-
-    /* 2. BOTÓN VISIBLE TIPO PASTILLA (Abajo de la tarjeta) */
-    div[data-testid="column"] div.stButton:nth-of-type(2) {
-        margin-top: 15px; /* Separación intencional de la tarjeta */
-        padding: 0 10px;  /* Un poco más angosto para estilizarlo */
-    }
-    div[data-testid="column"] div.stButton:nth-of-type(2) > button {
-        border-radius: 50px !important; /* Bordes totalmente redondeados (Pastilla) */
-        font-weight: 600 !important;
+    div.stButton > button:hover {
         background-color: #10b981 !important;
         color: white !important;
-        border: none !important;
-        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2) !important;
-        transition: all 0.2s ease !important;
-    }
-    div[data-testid="column"] div.stButton:nth-of-type(2) > button:hover {
-        background-color: #059669 !important;
-        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3) !important;
-    }
-
-    /* EFECTO HOVER EN CONJUNTO */
-    div[data-testid="column"]:hover .modern-card {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #cbd5e1;
+        border-color: #10b981 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. BANNER DE BIENVENIDA
+    # 1. BANNER DE BIENVENIDA (Estilo de la segunda imagen)
     st.markdown(f"""
     <div class="welcome-banner">
         <div class="welcome-text">
@@ -234,7 +205,7 @@ if is_logged_in:
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS
+    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
@@ -243,13 +214,9 @@ if is_logged_in:
                 img_base64 = img_to_base64(pagina['imagen_path'])
                 img_src = f"data:image/png;base64,{img_base64}"
             except Exception:
-                img_src = "https://via.placeholder.com/150"
+                img_src = "https://via.placeholder.com/150" # Por si falla alguna ruta
 
-            # Accionador 1: Botón Invisible sobre la imagen (Detecta el clic en la foto de forma segura)
-            if st.button("", key=f"img_click_{pagina['key']}", use_container_width=True):
-                st.switch_page(pagina['pagina'])
-
-            # Render de la tarjeta visual
+            # Render de la tarjeta HTML moderna
             st.markdown(
                 f"""
                 <div class="modern-card">
@@ -264,11 +231,12 @@ if is_logged_in:
                 """,
                 unsafe_allow_html=True
             )
-            
-            # Accionador 2: Botón tipo Pastilla estilizado abajo
-            if st.button("Ingresar →", key=f"btn_click_{pagina['key']}", use_container_width=True):
+
+            # Botón estilizado mediante CSS global
+            if st.button("Acceder", key=pagina['key'], use_container_width=True):
                 st.switch_page(pagina['pagina'])
 
+                
 else:
     st.subheader("Bienvenido a Grino 🧮", divider="blue")
     st.toast("Para acceder a las herramientas de gestión de presupuestos, por favor inicie sesión o regístrese.")
