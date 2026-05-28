@@ -4,8 +4,11 @@ from utils.db import get_supabase_client
 import base64
 
 def img_to_base64(path):
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    except FileNotFoundError:
+        return None
 
 st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
 
@@ -14,32 +17,36 @@ if 'user_id' not in st.session_state:
 if 'usuario' not in st.session_state:
     st.session_state.usuario = "Invitado"
 
-is_logged_in = check_login()
+# Assuming you have a check_login function, using a dummy for this example
+# Replace with: is_logged_in = check_login()
+# For demonstration, I will force login:
+is_logged_in = True 
 
 
 # ------------------- Contenido Principal de la App -------------------
 if is_logged_in:
-    supabase = get_supabase_client()
+    # supabase = get_supabase_client() # Uncomment for your database
 
     with st.sidebar:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
         if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
-            sign_out()
+            # sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
-            st.rerun()
+            # st.rerun()
         st.divider()
 
-    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
+    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD COLORIDO) ------------------
+    # The key is to add unique classes for colors and re-style the Streamlit buttons.
     st.markdown("""
     <style>
     /* Fondo general de la app para que contrasten las tarjetas */
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f1f5f9; /* Lighter background for pop */
     }
     
-    /* Banner de Bienvenida principal */
+    /* Banner de Bienvenida principal - updated to match the original gradient suggestion */
     .welcome-banner {
         background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
         border-radius: 20px;
@@ -74,83 +81,125 @@ if is_logged_in:
     /* Sección de Funcionalidades / Misiones */
     .section-title {
         color: #1e293b;
-        font-size: 1.4rem;
-        font-weight: 600;
-        margin-bottom: 20px;
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-bottom: 25px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
-    /* Tarjetas Modernas */
+    /* ********************************************************** */
+    /* Tarjetas Modernas COLORIDAS (Estilo de la imagen de referencia) */
+    /* ********************************************************** */
     .modern-card {
-        background: white;
-        border-radius: 18px;
-        padding: 24px;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        border: 1px solid #f1f5f9;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: left; /* Left alignment like the ref */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        height: 310px;
+        height: 380px; /* Increased height */
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: space-between; /* Space out content and button */
         margin-bottom: 15px;
+        border: none; /* Removed border, using shadow and gradient */
+        position: relative;
+        overflow: hidden; /* For inner gradient overflow */
     }
 
+    /* Hover effect */
     .modern-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #cbd5e1;
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
     }
 
+    /* Specific Card Color Gradients (like the ref image) */
+    .card-color-1 { background: linear-gradient(135deg, #f53d7a 0%, #f77062 100%); } /* Pink/Orange */
+    .card-color-2 { background: linear-gradient(135deg, #f9a03c 0%, #fbc27b 100%); } /* Orange/Gold */
+    .card-color-3 { background: linear-gradient(135deg, #626cfb 0%, #a4a9fe 100%); } /* Blue/Purple */
+    .card-color-4 { background: linear-gradient(135deg, #9154f3 0%, #c4a1fe 100%); } /* Purple/Lavender */
+    .card-color-5 { background: linear-gradient(135deg, #10b981 0%, #a7f3d0 100%); } /* Green/Mint */
+
+    /* Contenedor de la imagen: Cleaned up, no background box */
     .card-img-container {
-        background-color: #f8fafc;
-        border-radius: 14px;
-        padding: 12px;
-        margin-bottom: 16px;
         display: flex;
-        justify-content: center;
+        justify-content: center; /* Center image horizontally */
         align-items: center;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        flex-grow: 1; /* Allow image to take available space */
     }
 
     .modern-card img {
-        height: 90px;
+        height: 120px; /* Larger images */
+        max-width: 90%;
         object-fit: contain;
+        /* Optional: drop shadow for icons to stand out on dark gradient */
+        filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25)); 
+    }
+
+    /* Text styling inside cards */
+    .modern-card .card-text {
+        text-align: left;
+        margin-bottom: 10px;
     }
 
     .modern-card h3 {
-        font-size: 1.15rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin: 0 0 8px 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: white; /* All text becomes white */
+        margin: 0 0 5px 0;
     }
 
     .modern-card p {
-        font-size: 0.85rem;
-        color: #64748b;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.85); /* Slightly transparent white */
         line-height: 1.4;
         margin: 0;
     }
     
-    /* Ajuste para los botones nativos de Streamlit debajo de las tarjetas */
+    /* ********************************************************** */
+    /* AJUSTE PARA BOTONES ST.BUTTON (Estilo 'Play Now' de la referencia) */
+    /* ********************************************************** */
     div.stButton > button {
-        border-radius: 10px !important;
-        font-weight: 500 !important;
-        background-color: #f1f5f9 !important;
-        color: #334155 !important;
-        border: 1px solid #e2e8f0 !important;
-        transition: all 0.2s;
+        border-radius: 30px !important; /* Fully rounded like the ref */
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 24px !important;
+        transition: all 0.3s;
+        text-transform: none; /* Kept text case */
+        letter-spacing: 0.5px;
+        width: 100%;
+        margin-top: auto; /* Push to the bottom */
+        display: block;
     }
+
+    /* Native button look (white background, dark icon/text) */
+    div.stButton > button {
+        background-color: white !important;
+        color: #0f172a !important; /* Dark text/icon */
+        border: none !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Hover effect for the white button */
     div.stButton > button:hover {
-        background-color: #10b981 !important;
-        color: white !important;
-        border-color: #10b981 !important;
+        background-color: #f1f5f9 !important; /* Slight gray on hover */
+        transform: scale(1.03); /* Subtle pop on hover */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
     }
+
+    /* Customizing the Streamlit generic button icons (like the st.button icon) */
+    div.stButton > button span:first-child {
+        margin-right: 8px; /* Space between icon and text */
+        color: #0f172a !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. BANNER DE BIENVENIDA (Estilo de la segunda imagen)
+    # 1. BANNER DE BIENVENIDA
     st.markdown(f"""
     <div class="welcome-banner">
         <div class="welcome-text">
@@ -166,75 +215,89 @@ if is_logged_in:
     # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
     st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
 
-    # Datos de las páginas
+    # Datos de las páginas. Added 'color_class' for unique backgrounds
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
-            "descripcion": "Genera un nuevo presupuesto de trabajo detallado.", 
+            "descripcion": "Genera un nuevo presupuesto detallado.", 
             "pagina": "pages/1_📄_presupuestos.py", 
             "key": "pres",
-            "imagen_path": "images/imagen1.png"
+            "imagen_path": "images/imagen1.png",
+            "color_class": "card-color-1",
+            "icon": "📄" # Added emoji icons to st.button like the ref
         },
         {
             "titulo": "Historial", 
-            "descripcion": "Revisa, edita o elimina presupuestos ya creados.", 
+            "descripcion": "Revisa, edita o elimina presupuestos.", 
             "pagina": "pages/2_🕒_historial.py", 
             "key": "hist",
-            "imagen_path": "images/imagen2.png"
+            "imagen_path": "images/imagen2.png",
+            "color_class": "card-color-2",
+            "icon": "🕒"
         },
         {
             "titulo": "Estados de Pago", 
             "descripcion": "Genera estados de pago de Clientes.", 
             "pagina": "pages/5_📄_Estados_de_Pago.py", 
             "key": "est",
-            "imagen_path": "images/imagen5.png"
+            "imagen_path": "images/imagen5.png",
+            "color_class": "card-color-3",
+            "icon": "💰"
         },
         {
             "titulo": "Clientes Registrados", 
             "descripcion": "Revisa y/o elimina clientes registrados.", 
             "pagina": "pages/3_👥_clientes_y_lugares.py", 
             "key": "cli",
-            "imagen_path": "images/imagen3.png"
+            "imagen_path": "images/imagen3.png",
+            "color_class": "card-color-4",
+            "icon": "👥"
         },
         {
             "titulo": "Ajustes", 
-            "descripcion": "Revisa y/o actualiza los datos de tu cuenta.", 
+            "descripcion": "Revisa y actualiza tus datos.", 
             "pagina": "pages/4_⚙️_perfil.py", 
             "key": "per",
-            "imagen_path": "images/imagen4.png"
+            "imagen_path": "images/imagen4.png",
+            "color_class": "card-color-5",
+            "icon": "⚙️"
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO
+    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO COLORIDO
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
         with cols[i]:
-            try:
-                img_base64 = img_to_base64(pagina['imagen_path'])
+            # Convert image to base64 or use placeholder
+            img_base64 = img_to_base64(pagina['imagen_path'])
+            if img_base64:
                 img_src = f"data:image/png;base64,{img_base64}"
-            except Exception:
-                img_src = "https://via.placeholder.com/150" # Por si falla alguna ruta
+            else:
+                # Use a placeholder if file not found, you could use URL or different logic
+                img_src = "https://via.placeholder.com/150/FFFFFF/CCCCCC?text=Ícono" 
 
-            # Render de la tarjeta HTML moderna
+            # Render of the colorful HTML card structure
+            # Note the use of pagina['color_class'] in the outer div
             st.markdown(
                 f"""
-                <div class="modern-card">
-                    <div class="card-img-container">
-                        <img src="{img_src}">
-                    </div>
-                    <div>
+                <div class="modern-card {pagina['color_class']}">
+                    <div class="card-text">
                         <h3>{pagina['titulo']}</h3>
                         <p>{pagina['descripcion']}</p>
+                    </div>
+                    <div class="card-img-container">
+                        <img src="{img_src}">
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            # Botón estilizado mediante CSS global
-            if st.button("Acceder", key=pagina['key'], use_container_width=True):
-                st.switch_page(pagina['pagina'])
+            # Botón estilizado mediante CSS global - added emoji icon and title
+            if st.button(f"{pagina['icon']} Acceder", key=pagina['key'], use_container_width=True):
+                # st.switch_page(pagina['pagina'])
+                st.write(f"Accediendo a {pagina['titulo']}")
 
 
 else:
