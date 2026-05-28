@@ -7,14 +7,14 @@ def check_login() -> bool:
     return 'user_id' in st.session_state and st.session_state.user_id is not None
 
 def authenticate(email: str, password_hash: str) -> bool:
-    """Autentica al usuario verificando el password_hash usando crypt() en Neon."""
+    """Autentica al usuario uniendo las columnas nombre y apellidos en PostgreSQL."""
     clean_email = email.strip().lower()
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Corregido: Cambiamos 'id' por 'uid' según tu base de datos
+            # Corregido: Concatenamos 'nombre' y 'apellidos' como 'full_name'
             cur.execute(
-                """SELECT uid, full_name, email 
+                """SELECT uid, (nombre || ' ' || apellidos) AS full_name, email 
                    FROM usuarios 
                    WHERE lower(email) = %s AND password_hash = crypt(%s, password_hash);""",
                 (clean_email, password_hash)
@@ -26,7 +26,7 @@ def authenticate(email: str, password_hash: str) -> bool:
             st.session_state.user_id = str(user_row[0])
             st.session_state.usuario = user_row[1] if user_row[1] else user_row[2]
             
-            # Simulamos el objeto 'user' antiguo para no romper ninguna vista existente
+            # Simulamos el objeto 'user' antiguo para compatibilidad con el front
             class MockUser:
                 def __init__(self, uid, email, name):
                     self.id = uid
@@ -45,22 +45,28 @@ def authenticate(email: str, password_hash: str) -> bool:
         conn.close()
 
 def register_user(email: str, password_hash: str, full_name: str) -> bool:
-    """Registra un usuario encriptando su contraseña con bcrypt ('bf') directamente en Neon."""
+    """Registra un usuario dividiendo el full_name en nombre y apellidos para la tabla."""
     clean_email = email.strip().lower()
+    
+    # Separar inteligentemente el nombre completo en nombre y apellidos
+    parts = full_name.strip().split(" ", 1)
+    nombre = parts[0]
+    apellidos = parts[1] if len(parts) > 1 else ""
+
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Verificar si el correo ya existe en tu tabla usuarios
+            # Verificar si el correo ya existe
             cur.execute("SELECT uid FROM usuarios WHERE lower(email) = %s;", (clean_email,))
             if cur.fetchone():
                 st.error("❌ El correo electrónico ya está registrado.")
                 return False
             
-            # Insertar el registro usando pgcrypto (Cambiado a 'uid' en caso de que use RETURNING)
+            # Insertar el registro usando tus columnas nativas: nombre y apellidos
             cur.execute(
-                """INSERT INTO usuarios (email, password_hash, full_name) 
-                   VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING uid;""",
-                (clean_email, password_hash, full_name.strip())
+                """INSERT INTO usuarios (email, password_hash, nombre, apellidos) 
+                   VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s, %s) RETURNING uid;""",
+                (clean_email, password_hash, nombre, apellidos)
             )
             nuevo_id = cur.fetchone()
             conn.commit()
