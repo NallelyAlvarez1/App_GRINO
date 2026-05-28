@@ -176,15 +176,8 @@ with tab_presupuestos:
 
                 col4.write(f"**{notas}**")
 
-                fecha_val = p.get('fecha_creacion')
-                if isinstance(fecha_val, datetime):
-                    fecha_display = fecha_val.strftime('%Y-%m-%d')
-                elif isinstance(fecha_val, str):
-                    fecha_display = fecha_val.split('T')[0] if 'T' in fecha_val else fecha_val
-                else:
-                    fecha_display = "N/A"
-
-                col5.write(fecha_display)
+                fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
+                col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
                     
                 col6.write(f"**${total_display:,.0f}**")
                 col7.write(str(p.get('num_items', 0)))

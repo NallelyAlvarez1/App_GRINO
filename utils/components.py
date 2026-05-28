@@ -4,6 +4,7 @@ import pandas as pd
 import uuid
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, Optional
+# 🚨 IMPORTANTE: Asegúrate que el nombre del archivo de la DB sea 'db.py'
 from utils.db import (
     create_categoria, 
     get_categorias, 
@@ -14,7 +15,36 @@ from utils.db import (
 )
 
 # ==================== UTILIDADES DE COMPONENTES ====================
+def _call_db_upsert(item: Dict[str, Any]) -> None:
+    try:
+        from utils.db import upsert_item
+        upsert_item(item)
+    except Exception:
+        # no hay upsert_item o falla: ignorar (estado en memoria seguirá)
+        pass
 
+def _call_db_delete(item_id: Any) -> None:
+    try:
+        from utils.db import delete_item
+        delete_item(item_id)
+    except Exception:
+        pass
+
+def _call_db_reindex(presupuesto_id: Optional[int], all_items: List[Dict[str, Any]]) -> None:
+    try:
+        from utils.db import reindex_items
+        reindex_items(presupuesto_id, all_items)
+    except Exception:
+        pass
+
+def safe_numeric_value(value):
+    """Convierte un valor a float de forma segura, o devuelve 0 si falla. Útil para totales."""
+    try:
+        if value is None:
+            return 0.0
+        return float(value)
+    except (ValueError, TypeError):
+        return 0.0
 # ----------------------------
 # UTIL: asegurar ids y posicion en todas las categorias
 # ----------------------------

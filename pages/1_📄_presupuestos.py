@@ -292,14 +292,10 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-<<<<<<< HEAD
-                        mostrar_boton_descarga_pdf(presupuesto_id)
-=======
 
                         pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(
                             presupuesto_id
                         )
->>>>>>> parent of 03bfc72 (Revert "Update 1_📄_presupuestos.py")
 
                         if success and pdf_bytes:
                             st.download_button(
