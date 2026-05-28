@@ -85,7 +85,7 @@ if is_logged_in:
     /* --- TARJETA CUADRADA --- */
     .modern-card {
         border-radius: 24px;
-        padding: 22px;
+        padding: 2px;
         box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         
