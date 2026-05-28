@@ -1,22 +1,23 @@
 import streamlit as st
+# Importamos la función de conexión nativa desde tu db.py
 from utils.db import get_connection
 
 def check_login() -> bool:
     """Verifica si el usuario está logueado en la sesión actual."""
     return 'user_id' in st.session_state and st.session_state.user_id is not None
 
-def authenticate(email: str, password: str) -> bool:
-    """Autentica al usuario verificando el password usando crypt() en Neon."""
+def authenticate(email: str, password_hash: str) -> bool:
+    """Autentica al usuario verificando el password_hash usando crypt() en Neon."""
     clean_email = email.strip().lower()
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Buscamos el usuario y verificamos el password usando el hash bcrypt almacenado
+            # Corregido: Cambiamos 'id' por 'uid' según tu base de datos
             cur.execute(
-                """SELECT id, full_name, email 
+                """SELECT uid, full_name, email 
                    FROM usuarios 
                    WHERE lower(email) = %s AND password_hash = crypt(%s, password_hash);""",
-                (clean_email, password)
+                (clean_email, password_hash)
             )
             user_row = cur.fetchone()
             
@@ -27,8 +28,8 @@ def authenticate(email: str, password: str) -> bool:
             
             # Simulamos el objeto 'user' antiguo para no romper ninguna vista existente
             class MockUser:
-                def __init__(self, id, email, name):
-                    self.id = id
+                def __init__(self, uid, email, name):
+                    self.id = uid
                     self.email = email
                     self.user_metadata = {"full_name": name, "display_name": name}
             
@@ -43,23 +44,23 @@ def authenticate(email: str, password: str) -> bool:
     finally:
         conn.close()
 
-def register_user(email: str, password: str, full_name: str) -> bool:
+def register_user(email: str, password_hash: str, full_name: str) -> bool:
     """Registra un usuario encriptando su contraseña con bcrypt ('bf') directamente en Neon."""
     clean_email = email.strip().lower()
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             # Verificar si el correo ya existe en tu tabla usuarios
-            cur.execute("SELECT id FROM usuarios WHERE lower(email) = %s;", (clean_email,))
+            cur.execute("SELECT uid FROM usuarios WHERE lower(email) = %s;", (clean_email,))
             if cur.fetchone():
                 st.error("❌ El correo electrónico ya está registrado.")
                 return False
             
-            # Insertar el registro usando pgcrypto (factor de trabajo 8 para balance velocidad/seguridad)
+            # Insertar el registro usando pgcrypto (Cambiado a 'uid' en caso de que use RETURNING)
             cur.execute(
                 """INSERT INTO usuarios (email, password_hash, full_name) 
-                   VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING id;""",
-                (clean_email, password, full_name.strip())
+                   VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING uid;""",
+                (clean_email, password_hash, full_name.strip())
             )
             nuevo_id = cur.fetchone()
             conn.commit()
