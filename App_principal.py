@@ -36,54 +36,142 @@ if is_logged_in:
     st.subheader(f"Bienvenid@, {st.session_state.usuario}", divider="green")
 
 
-    # ------------------ ESTILOS PARA LAS TARJETAS ------------------
+# ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
     st.markdown("""
     <style>
-    .centered-card {
-        text-align: center;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        margin: 8px 0;
+    /* Fondo general de la app para que contrasten las tarjetas */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* Banner de Bienvenida principal */
+    .welcome-banner {
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+        border-radius: 20px;
+        padding: 35px;
+        margin-bottom: 30px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .welcome-text h1 {
+        color: #0f172a;
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .welcome-text p {
+        color: #475569;
+        font-size: 1.1rem;
+        margin-top: 5px;
+        margin-bottom: 0;
+    }
+    .welcome-badge {
+        background-color: #10b981;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    /* Sección de Funcionalidades / Misiones */
+    .section-title {
+        color: #1e293b;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Tarjetas Modernas */
+    .modern-card {
         background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        height: 330px;
+        border-radius: 18px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 310px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-    }
-
-    .centered-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-
-    .centered-card img {
-        width: 100%;
-        height: 180px;
-        border-radius: 8px;
         margin-bottom: 15px;
     }
 
-    .centered-card h3 {
-        text-align: center;
-        margin: 12px 0 8px 0;
-        font-size: 1.3em;
-        font-weight: 600;
-        color: #1f2937;
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #cbd5e1;
     }
 
-    .centered-card p {
-        text-align: center;
-        margin: 0;
-        color: #6b7280;
-        font-size: 0.9em;
+    .card-img-container {
+        background-color: #f8fafc;
+        border-radius: 14px;
+        padding: 12px;
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modern-card img {
+        height: 90px;
+        object-fit: contain;
+    }
+
+    .modern-card h3 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin: 0 0 8px 0;
+    }
+
+    .modern-card p {
+        font-size: 0.85rem;
+        color: #64748b;
         line-height: 1.4;
+        margin: 0;
+    }
+    
+    /* Ajuste para los botones nativos de Streamlit debajo de las tarjetas */
+    div.stButton > button {
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all 0.2s;
+    }
+    div.stButton > button:hover {
+        background-color: #10b981 !important;
+        color: white !important;
+        border-color: #10b981 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # 1. BANNER DE BIENVENIDA (Estilo de la segunda imagen)
+    st.markdown(f"""
+    <div class="welcome-banner">
+        <div class="welcome-text">
+            <h1>¡Hola, {st.session_state.usuario}! 👋</h1>
+            <p>Gestiona y optimiza tus presupuestos desde tu panel de control.</p>
+        </div>
+        <div class="welcome-badge">
+            🌱 App Activa
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
+    st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
+
+    # Datos de las páginas
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
@@ -122,48 +210,36 @@ if is_logged_in:
         }
     ]
 
-    st.markdown("""
-    <style>
-    .centered-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        text-align: center;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        margin-bottom: 1rem;
-    }
-
-    .card-img {
-        width: 100%;
-        height: 120px;
-        border-radius: 10px;
-        margin-bottom: 0.8rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Crear columnas para las tarjetas
+    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO
     cols = st.columns(5)
 
-    # Renderizar las tarjetas en las columnas
     for i, pagina in enumerate(paginas):
         with cols[i]:
-            img_base64 = img_to_base64(pagina['imagen_path'])
+            try:
+                img_base64 = img_to_base64(pagina['imagen_path'])
+                img_src = f"data:image/png;base64,{img_base64}"
+            except Exception:
+                img_src = "https://via.placeholder.com/150" # Por si falla alguna ruta
 
+            # Render de la tarjeta HTML moderna
             st.markdown(
                 f"""
-                <div class="centered-card">
-                    <img src="data:image/png;base64,{img_base64}" class="card-img">
-                    <h3>{pagina['titulo']}</h3>
-                    <p>{pagina['descripcion']}</p>
+                <div class="modern-card">
+                    <div class="card-img-container">
+                        <img src="{img_src}">
+                    </div>
+                    <div>
+                        <h3>{pagina['titulo']}</h3>
+                        <p>{pagina['descripcion']}</p>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
+            # Botón estilizado mediante CSS global
             if st.button("Acceder", key=pagina['key'], use_container_width=True):
                 st.switch_page(pagina['pagina'])
-
 
     # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
 else:
