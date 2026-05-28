@@ -31,7 +31,7 @@ if is_logged_in:
             st.rerun()
         st.divider()
 
-    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (BOTÓN INTEGRADO) ------------------
+    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (DISEÑO PASTILLA + IMAGEN CLIQUEABLE) ------------------
     st.markdown("""
     <style>
     /* Fondo general de la app */
@@ -82,7 +82,7 @@ if is_logged_in:
         gap: 8px;
     }
 
-    /* Tarjetas Modernas */
+    /* Tarjetas Modernas (Altura fija reducida porque el botón va abajo afuera) */
     .modern-card {
         background: white;
         border-radius: 18px;
@@ -90,11 +90,11 @@ if is_logged_in:
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         border: 1px solid #f1f5f9;
-        height: 340px; /* Un poco más alta para dar espacio al botón */
+        height: 255px; 
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s ease;
     }
 
     .card-img-container {
@@ -126,21 +126,38 @@ if is_logged_in:
         margin: 0;
     }
 
-    /* ================= ESTILO DEL BOTÓN INTEGRADO DENTRO DE LA TARJETA ================= */
+    /* ================= CONTROL DE POSICIONAMIENTO DE BOTONES ================= */
     
-    /* Empujamos el botón hacia arriba para meterlo visualmente en la tarjeta */
-    div[data-testid="column"] div.stButton {
-        margin-top: -75px; 
-        padding-left: 24px;
-        padding-right: 24px;
+    div[data-testid="column"] {
         position: relative;
-        z-index: 10;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Diseño estilizado del botón nativo (Verde esmeralda moderno) */
-    div[data-testid="column"] div.stButton > button {
-        border-radius: 12px !important;
+    /* 1. BOTÓN INVISIBLE (Encima de la Imagen) */
+    div[data-testid="column"] div.stButton:nth-of-type(1) {
+        position: absolute;
+        top: 24px;      /* Alineado con el padding de la tarjeta */
+        left: 24px;     /* Alineado con el padding de la tarjeta */
+        right: 24px;
+        height: 114px;  /* Cubre exactamente el contenedor de la imagen */
+        z-index: 10;
+    }
+    div[data-testid="column"] div.stButton:nth-of-type(1) > button {
+        background: transparent !important;
+        color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        height: 100% !important;
+        cursor: pointer;
+    }
+
+    /* 2. BOTÓN VISIBLE TIPO PASTILLA (Abajo de la tarjeta) */
+    div[data-testid="column"] div.stButton:nth-of-type(2) {
+        margin-top: 15px; /* Separación intencional de la tarjeta */
+        padding: 0 10px;  /* Un poco más angosto para estilizarlo */
+    }
+    div[data-testid="column"] div.stButton:nth-of-type(2) > button {
+        border-radius: 50px !important; /* Bordes totalmente redondeados (Pastilla) */
         font-weight: 600 !important;
         background-color: #10b981 !important;
         color: white !important;
@@ -148,23 +165,16 @@ if is_logged_in:
         box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2) !important;
         transition: all 0.2s ease !important;
     }
-
-    /* Efecto Hover específico del botón */
-    div[data-testid="column"] div.stButton > button:hover {
-        background-color: #059669 !important; /* Verde más oscuro al pasar el mouse */
-        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4) !important;
+    div[data-testid="column"] div.stButton:nth-of-type(2) > button:hover {
+        background-color: #059669 !important;
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3) !important;
     }
 
-    /* EFECTO HOVER COMPUESTO: Cuando el usuario pasa el mouse por CUALQUIER parte 
-       de la columna, la tarjeta y el botón se elevan juntos en perfecta sintonía */
+    /* EFECTO HOVER EN CONJUNTO */
     div[data-testid="column"]:hover .modern-card {
-        transform: translateY(-6px);
+        transform: translateY(-5px);
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         border-color: #cbd5e1;
-    }
-    
-    div[data-testid="column"]:hover div.stButton {
-        transform: translateY(-6px);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -235,7 +245,11 @@ if is_logged_in:
             except Exception:
                 img_src = "https://via.placeholder.com/150"
 
-            # Render de la tarjeta HTML (dejamos un espacio vacío abajo de 60px para el botón)
+            # Accionador 1: Botón Invisible sobre la imagen (Detecta el clic en la foto de forma segura)
+            if st.button("", key=f"img_click_{pagina['key']}", use_container_width=True):
+                st.switch_page(pagina['pagina'])
+
+            # Render de la tarjeta visual
             st.markdown(
                 f"""
                 <div class="modern-card">
@@ -246,17 +260,15 @@ if is_logged_in:
                         <h3>{pagina['titulo']}</h3>
                         <p>{pagina['descripcion']}</p>
                     </div>
-                    <div style="height: 60px;"></div> 
                 </div>
                 """,
                 unsafe_allow_html=True
             )
             
-            # El botón nativo se renderiza aquí y el CSS lo posiciona perfectamente en el espacio en blanco
-            if st.button("Ingresar →", key=pagina['key'], use_container_width=True):
+            # Accionador 2: Botón tipo Pastilla estilizado abajo
+            if st.button("Ingresar →", key=f"btn_click_{pagina['key']}", use_container_width=True):
                 st.switch_page(pagina['pagina'])
 
-    # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
 else:
     st.subheader("Bienvenido a Grino 🧮", divider="blue")
     st.toast("Para acceder a las herramientas de gestión de presupuestos, por favor inicie sesión o regístrese.")
