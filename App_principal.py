@@ -33,10 +33,22 @@ if is_logged_in:
         
 
     st.header("🌱GRINO - Gestión de Presupuestos 🛠️")
-    st.subheader(f"Bienvenid@, {st.session_state.usuario}", divider="green")
 
+# ------------------- Contenido Principal de la App -------------------
+if is_logged_in:
+    supabase = get_supabase_client()
 
-# ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
+    with st.sidebar:
+        st.markdown("**👤 Usuario:**")
+        st.markdown(f"`{st.session_state.usuario}`")
+
+        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
+            sign_out()
+            st.toast("Sesión cerrada correctamente", icon="🌱")
+            st.rerun()
+        st.divider()
+
+    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
     st.markdown("""
     <style>
     /* Fondo general de la app para que contrasten las tarjetas */
@@ -87,6 +99,13 @@ if is_logged_in:
         gap: 8px;
     }
 
+    /* Enlace invisible para envolver las tarjetas */
+    .card-link {
+        text-decoration: none !important;
+        color: inherit !important;
+        display: block;
+    }
+
     /* Tarjetas Modernas */
     .modern-card {
         background: white;
@@ -101,6 +120,7 @@ if is_logged_in:
         flex-direction: column;
         justify-content: space-between;
         margin-bottom: 15px;
+        cursor: pointer; /* Cambia el cursor a manito al pasar sobre la tarjeta */
     }
 
     .modern-card:hover {
@@ -137,25 +157,10 @@ if is_logged_in:
         line-height: 1.4;
         margin: 0;
     }
-    
-    /* Ajuste para los botones nativos de Streamlit debajo de las tarjetas */
-    div.stButton > button {
-        border-radius: 10px !important;
-        font-weight: 500 !important;
-        background-color: #f1f5f9 !important;
-        color: #334155 !important;
-        border: 1px solid #e2e8f0 !important;
-        transition: all 0.2s;
-    }
-    div.stButton > button:hover {
-        background-color: #10b981 !important;
-        color: white !important;
-        border-color: #10b981 !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. BANNER DE BIENVENIDA (Estilo de la segunda imagen)
+    # 1. BANNER DE BIENVENIDA
     st.markdown(f"""
     <div class="welcome-banner">
         <div class="welcome-text">
@@ -171,46 +176,41 @@ if is_logged_in:
     # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
     st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
 
-    # Datos de las páginas
+    # Datos de las páginas (Utilizando las URLs limpias generadas por Streamlit)
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
             "descripcion": "Genera un nuevo presupuesto de trabajo detallado.", 
-            "pagina": "pages/1_📄_presupuestos.py", 
-            "key": "pres",
+            "url": "presupuestos", 
             "imagen_path": "images/imagen1.png"
         },
         {
             "titulo": "Historial", 
             "descripcion": "Revisa, edita o elimina presupuestos ya creados.", 
-            "pagina": "pages/2_🕒_historial.py", 
-            "key": "hist",
+            "url": "historial", 
             "imagen_path": "images/imagen2.png"
         },
         {
             "titulo": "Estados de Pago", 
             "descripcion": "Genera estados de pago de Clientes.", 
-            "pagina": "pages/5_📄_Estados_de_Pago.py", 
-            "key": "est",
+            "url": "Estados_de_Pago", 
             "imagen_path": "images/imagen5.png"
         },
         {
             "titulo": "Clientes Registrados", 
             "descripcion": "Revisa y/o elimina clientes registrados.", 
-            "pagina": "pages/3_👥_clientes_y_lugares.py", 
-            "key": "cli",
+            "url": "clientes_y_lugares", 
             "imagen_path": "images/imagen3.png"
         },
         {
             "titulo": "Ajustes", 
             "descripcion": "Revisa y/o actualiza los datos de tu cuenta.", 
-            "pagina": "pages/4_⚙️_perfil.py", 
-            "key": "per",
+            "url": "perfil", 
             "imagen_path": "images/imagen4.png"
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO
+    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO CLICKABLE
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
@@ -221,26 +221,24 @@ if is_logged_in:
             except Exception:
                 img_src = "https://via.placeholder.com/150" # Por si falla alguna ruta
 
-            # Render de la tarjeta HTML moderna
+            # Render de la tarjeta HTML envuelta en la etiqueta <a> para redirección directa
             st.markdown(
                 f"""
-                <div class="modern-card">
-                    <div class="card-img-container">
-                        <img src="{img_src}">
+                <a href="{pagina['url']}" target="_self" class="card-link">
+                    <div class="modern-card">
+                        <div class="card-img-container">
+                            <img src="{img_src}">
+                        </div>
+                        <div>
+                            <h3>{pagina['titulo']}</h3>
+                            <p>{pagina['descripcion']}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3>{pagina['titulo']}</h3>
-                        <p>{pagina['descripcion']}</p>
-                    </div>
-                </div>
+                </a>
                 """,
                 unsafe_allow_html=True
             )
-
-            # Botón estilizado mediante CSS global
-            if st.button("Acceder", key=pagina['key'], use_container_width=True):
-                st.switch_page(pagina['pagina'])
-
+            
     # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
 else:
     st.subheader("Bienvenido a Grino 🧮", divider="blue")
