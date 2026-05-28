@@ -123,7 +123,7 @@ if is_logged_in:
         font-weight: 800;
         color: white;
         margin: 0;
-        line-height: 0.5;
+        line-height: 1;
     }
 
     /* TEXTO DESCRIPTIVO CENTRADO EN EL ESPACIO MEDIO */
@@ -133,14 +133,14 @@ if is_logged_in:
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 5px;
+        padding: 1px;
     }
     .modern-card p {
         font-size: 0.95rem;
         color: rgba(255, 255, 255, 0.95);
         font-weight: 600;
         margin: 0;
-        line-height: 1.3;
+        line-height: 1;
         text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
     }
 
