@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from utils.db import get_connection
+from utils.db import get_supabase_client
 from utils.auth import check_login, sign_out
 
 st.set_page_config(page_title="Perfil", page_icon="🌱", layout="centered")
@@ -24,7 +24,7 @@ if not is_logged_in:
 
 # ------------------- Contenido Principal de la App -------------------
 if is_logged_in:
-    supabase = get_connection()
+    supabase = get_supabase_client()
 
     with st.sidebar:
         st.markdown("**👤 Usuario:**")
@@ -36,7 +36,7 @@ if is_logged_in:
             st.rerun()
         st.divider()
 
-supabase = get_connection()
+supabase = get_supabase_client()
 user = st.session_state.user
 metadata = user.user_metadata or {}
 

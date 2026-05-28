@@ -2,7 +2,7 @@ import streamlit as st
 import datetime
 import time
 from utils.auth import check_login, sign_out
-from utils.db import get_clientes, get_lugares_trabajo, get_connection
+from utils.db import get_clientes, get_lugares_trabajo, get_supabase_client
 from utils.pdf import generar_pdf_estado_cuenta
 
 st.header("📄 Generar Estado de Cuenta Mensual")
@@ -124,7 +124,7 @@ if st.session_state.items_estado_cuenta:
     
     # 4. Procesar Guardado y habilitar el PDF
     if st.button("💾 Guardar y Generar PDF", type="primary", use_container_width=True):
-        supabase = get_connection()
+        supabase = get_supabase_client()
         try:
             # Extraer primer mes y año disponible para guardar como referencia en campos de cabecera
             primer_mes = next((x["mes_num"] for x in st.session_state.items_estado_cuenta if x["mes_num"]), datetime.datetime.now().month)

@@ -3,7 +3,7 @@ import streamlit as st
 from utils.auth import check_login, sign_out
 from datetime import datetime, timedelta
 from utils.db import (
-    get_connection, get_clientes, get_lugares_trabajo, 
+    get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail,
     get_estados_cuenta_usuario,  # Importación limpia y directa
@@ -60,7 +60,7 @@ with st.sidebar:
         st.rerun()
 
 user_id = st.session_state.user_id 
-supabase = get_connection()
+supabase = get_supabase_client()
 
 # -----------------------------------------------------------
 # 2. FILTROS

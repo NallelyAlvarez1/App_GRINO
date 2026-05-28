@@ -13,7 +13,7 @@ import unicodedata
 from utils.auth import check_login, sign_out
 # DB / utilidades
 from utils.db import (
-    get_connection,
+    get_supabase_client,
     get_clientes,
     get_lugares_trabajo,
     get_presupuesto_detallado,
@@ -106,7 +106,7 @@ EDICION_KEY = 'categorias_edicion'
 HISTORIAL_PAGE = "pages/2_🕒_historial.py"
 
 user_id = st.session_state.get('user_id')
-supabase = get_connection()
+supabase = get_supabase_client()
 
 # Inicializar autoguardado
 autosave_manager = AutoSaveManager(user_id, "draft_edicion_presupuesto")

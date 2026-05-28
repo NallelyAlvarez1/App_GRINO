@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.auth import check_login, authenticate, register_user, sign_out
-from utils.db import get_connection
+from utils.db import get_supabase_client
 import base64
 
 def img_to_base64(path):
@@ -19,7 +19,7 @@ is_logged_in = check_login()
 
 # ------------------- Contenido Principal de la App -------------------
 if is_logged_in:
-    supabase = get_connection()
+    supabase = get_supabase_client()
 
     with st.sidebar:
         st.markdown("**👤 Usuario:**")
