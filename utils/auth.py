@@ -59,10 +59,13 @@ def register_user(email: str, password: str, full_name: str) -> bool:
             
             cur.execute(
 <<<<<<< HEAD
+<<<<<<< HEAD
                 """INSERT INTO usuarios (email, password_hash, nombre, apellidos) 
                    VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s, %s) RETURNING uid;""",
                 (clean_email, password, nombre, apellidos)
 =======
+=======
+>>>>>>> parent of efb3f98 (Update auth.py)
                 """INSERT INTO usuarios (email, password, full_name) 
                    VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING id;""",
                 (clean_email, password, full_name.strip())
