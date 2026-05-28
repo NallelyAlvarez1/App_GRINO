@@ -15,7 +15,7 @@ def authenticate(email: str, password: str) -> bool:
             cur.execute(
                 """SELECT uid, (nombre || ' ' || apellidos) AS full_name, email 
                    FROM usuarios 
-                   WHERE lower(email) = %s AND password_hash = crypt(%s, password_hash);""",
+                   WHERE lower(email) = %s AND password = crypt(%s, password);""",
                 (clean_email, password)
             )
             user_row = cur.fetchone()
@@ -58,9 +58,15 @@ def register_user(email: str, password: str, full_name: str) -> bool:
                 return False
             
             cur.execute(
+<<<<<<< HEAD
                 """INSERT INTO usuarios (email, password_hash, nombre, apellidos) 
                    VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s, %s) RETURNING uid;""",
                 (clean_email, password, nombre, apellidos)
+=======
+                """INSERT INTO usuarios (email, password, full_name) 
+                   VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING id;""",
+                (clean_email, password, full_name.strip())
+>>>>>>> parent of efb3f98 (Update auth.py)
             )
             nuevo_id = cur.fetchone()
             conn.commit()
