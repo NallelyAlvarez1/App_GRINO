@@ -292,11 +292,7 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-
-                        mostrar_boton_descarga_pdf(
-                            presupuesto_id,
-                            label="⬇ Descargar presupuesto"
-                        )
+                        mostrar_boton_descarga_pdf(presupuesto_id)
 
                     with col2:
                         if st.button("🔄 Crear otro presupuesto", use_container_width=True):
