@@ -5,17 +5,17 @@ def check_login() -> bool:
     """Verifica si el usuario está logueado."""
     return 'user_id' in st.session_state and st.session_state.user_id is not None
 
-def authenticate(email: str, password_hash: str) -> bool:
-    """Autentica al usuario uniendo las columnas nombre y apellidos en Neon."""
+def authenticate(email: str, password: str) -> bool:
+    """Autentica al usuario comparando el password_hash en Neon."""
     clean_email = email.strip().lower()
-    conn = get_connection() # Llama a la conexión corregida
+    conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT uid, (nombre || ' ' || apellidos) AS full_name, email 
                    FROM usuarios 
                    WHERE lower(email) = %s AND password_hash = crypt(%s, password_hash);""",
-                (clean_email, password_hash)
+                (clean_email, password)
             )
             user_row = cur.fetchone()
             
@@ -40,8 +40,8 @@ def authenticate(email: str, password_hash: str) -> bool:
     finally:
         conn.close()
 
-def register_user(email: str, password_hash: str, full_name: str) -> bool:
-    """Registra un usuario dividiendo el full_name para la tabla y aplicando Hash."""
+def register_user(email: str, password: str, full_name: str) -> bool:
+    """Registra un usuario insertando en la columna password_hash."""
     clean_email = email.strip().lower()
     
     parts = full_name.strip().split(" ", 1)
@@ -59,7 +59,7 @@ def register_user(email: str, password_hash: str, full_name: str) -> bool:
             cur.execute(
                 """INSERT INTO usuarios (email, password_hash, nombre, apellidos) 
                    VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s, %s) RETURNING uid;""",
-                (clean_email, password_hash, nombre, apellidos)
+                (clean_email, password, nombre, apellidos)
             )
             nuevo_id = cur.fetchone()
             conn.commit()
