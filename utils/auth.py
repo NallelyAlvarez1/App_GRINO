@@ -1,5 +1,4 @@
 import streamlit as st
-# Importamos la función de conexión nativa desde tu db.py
 from utils.db import get_connection
 
 def check_login() -> bool:
