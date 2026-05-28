@@ -84,13 +84,6 @@ if is_logged_in:
         gap: 8px;
     }
 
-    /* Enlace invisible para envolver las tarjetas */
-    .card-link {
-        text-decoration: none !important;
-        color: inherit !important;
-        display: block;
-    }
-
     /* Tarjetas Modernas */
     .modern-card {
         background: white;
@@ -105,13 +98,6 @@ if is_logged_in:
         flex-direction: column;
         justify-content: space-between;
         margin-bottom: 15px;
-        cursor: pointer; /* Cambia el cursor a manito al pasar sobre la tarjeta */
-    }
-
-    .modern-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #cbd5e1;
     }
 
     .card-img-container {
@@ -142,6 +128,52 @@ if is_logged_in:
         line-height: 1.4;
         margin: 0;
     }
+
+    /* ================= TRUCO CAPA INVISIBLE (STREAMLIT NATIVO) ================= */
+    
+    /* Convertimos la columna en un contenedor relativo para posicionar el botón encima */
+    div[data-testid="column"] {
+        position: relative;
+    }
+
+    /* Forzamos al contenedor del botón a ocupar todo el espacio de la columna */
+    div[data-testid="column"] div.stButton {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10; /* Se posiciona POR ENCIMA de la tarjeta HTML */
+    }
+
+    /* Volvemos el botón completamente invisible pero funcional */
+    div[data-testid="column"] div.stButton > button {
+        width: 100% !important;
+        height: 310px !important; /* Misma altura que la tarjeta */
+        background-color: transparent !important;
+        color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        cursor: pointer;
+    }
+    
+    /* Evitamos cambios visuales raros cuando se pasa el mouse sobre el botón invisible */
+    div[data-testid="column"] div.stButton > button:hover, 
+    div[data-testid="column"] div.stButton > button:active, 
+    div[data-testid="column"] div.stButton > button:focus {
+        background-color: transparent !important;
+        color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Como el botón está arriba, el hover original de la tarjeta no se activaría. 
+       Lo arreglamos haciendo que la tarjeta reaccione cuando se pasa el mouse por la COLUMNA */
+    div[data-testid="column"]:hover .modern-card {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #cbd5e1;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -161,41 +193,46 @@ if is_logged_in:
     # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
     st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
 
-    # Datos de las páginas (Utilizando las URLs limpias generadas por Streamlit)
+    # Volvemos a los paths de archivos originales para st.switch_page
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
             "descripcion": "Genera un nuevo presupuesto de trabajo detallado.", 
-            "url": "presupuestos", 
+            "pagina": "pages/1_📄_presupuestos.py", 
+            "key": "pres",
             "imagen_path": "images/imagen1.png"
         },
         {
             "titulo": "Historial", 
             "descripcion": "Revisa, edita o elimina presupuestos ya creados.", 
-            "url": "historial", 
+            "pagina": "pages/2_🕒_historial.py", 
+            "key": "hist",
             "imagen_path": "images/imagen2.png"
         },
         {
             "titulo": "Estados de Pago", 
             "descripcion": "Genera estados de pago de Clientes.", 
-            "url": "Estados_de_Pago", 
+            "pagina": "pages/5_📄_Estados_de_Pago.py", 
+            "key": "est",
             "imagen_path": "images/imagen5.png"
         },
         {
             "titulo": "Clientes Registrados", 
             "descripcion": "Revisa y/o elimina clientes registrados.", 
-            "url": "clientes_y_lugares", 
+            "pagina": "pages/3_👥_clientes_y_lugares.py", 
+            "key": "cli",
             "imagen_path": "images/imagen3.png"
         },
         {
             "titulo": "Ajustes", 
             "descripcion": "Revisa y/o actualiza los datos de tu cuenta.", 
-            "url": "perfil", 
+            "pagina": "pages/4_⚙️_perfil.py", 
+            "key": "per",
             "imagen_path": "images/imagen4.png"
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO CLICKABLE
+    # 3. RENDERIZADO EN COLUMNAS CON CAPA INVISIBLE
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
@@ -204,25 +241,28 @@ if is_logged_in:
                 img_base64 = img_to_base64(pagina['imagen_path'])
                 img_src = f"data:image/png;base64,{img_base64}"
             except Exception:
-                img_src = "https://via.placeholder.com/150" # Por si falla alguna ruta
+                img_src = "https://via.placeholder.com/150"
 
-            # Render de la tarjeta HTML envuelta en la etiqueta <a> para redirección directa
+            # Render de la tarjeta (Es HTML puro estático, ya no tiene etiquetas <a>)
             st.markdown(
                 f"""
-                <a href="{pagina['url']}" target="_self" class="card-link">
-                    <div class="modern-card">
-                        <div class="card-img-container">
-                            <img src="{img_src}">
-                        </div>
-                        <div>
-                            <h3>{pagina['titulo']}</h3>
-                            <p>{pagina['descripcion']}</p>
-                        </div>
+                <div class="modern-card">
+                    <div class="card-img-container">
+                        <img src="{img_src}">
                     </div>
-                </a>
+                    <div>
+                        <h3>{pagina['titulo']}</h3>
+                        <p>{pagina['descripcion']}</p>
+                    </div>
+                </div>
                 """,
                 unsafe_allow_html=True
             )
+            
+            # Este botón se vuelve invisible mediante el CSS de arriba y se estira sobre la tarjeta.
+            # Al ser presionado ejecuta st.switch_page sin romper la sesión.
+            if st.button("Ir", key=pagina['key'], use_container_width=True):
+                st.switch_page(pagina['pagina'])
 
     # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
 else:
