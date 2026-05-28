@@ -119,10 +119,11 @@ if is_logged_in:
     }
     .modern-card h3 {
         font-size: 1.5rem;
+        text-align: center;
         font-weight: 800;
         color: white;
         margin: 0;
-        line-height: 1.2;
+        line-height: 0.5;
     }
 
     /* TEXTO DESCRIPTIVO CENTRADO EN EL ESPACIO MEDIO */
