@@ -67,7 +67,7 @@ if is_logged_in:
         color: white;
         padding: 6px 16px;
         border-radius: 50px;
-        font-size: 0.85rem;
+        font-size: 1rem;
         font-weight: 600;
     }
 
@@ -158,7 +158,7 @@ if is_logged_in:
             <p>Gestiona y optimiza tus presupuestos desde tu panel de control.</p>
         </div>
         <div class="welcome-badge">
-            🌱 App Activa
+            🌱 GRINO APP
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -236,7 +236,7 @@ if is_logged_in:
             if st.button("Acceder", key=pagina['key'], use_container_width=True):
                 st.switch_page(pagina['pagina'])
 
-                
+
 else:
     st.subheader("Bienvenido a Grino 🧮", divider="blue")
     st.toast("Para acceder a las herramientas de gestión de presupuestos, por favor inicie sesión o regístrese.")
