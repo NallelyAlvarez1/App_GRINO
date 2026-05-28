@@ -455,45 +455,66 @@ def get_presupuestos_para_edicion(user_id: str) -> List[Dict]:
         conn.close()
 
 def get_presupuesto_para_editar(presupuesto_id: int) -> Dict:
+    """Obtiene un presupuesto y todos sus ítems formateados de forma segura para la edición y PDF."""
     conn = get_connection()
     try:
         presupuesto_data = {}
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # 1. Obtener los datos del encabezado del presupuesto recién creado
             cur.execute(
-                "SELECT id, descripcion, cliente_id, lugar_trabajo_id FROM presupuestos WHERE id = %s;",
-                (presupuesto_id,)
+                "SELECT id, descripcion, cliente_id, lugar_trabajo_id, total FROM presupuestos WHERE id = %s;",
+                (int(presupuesto_id),)
             )
             row = cur.fetchone()
             if not row:
                 return {}
             presupuesto_data = dict(row)
 
-            # Corregido: Se cambió ip.notes por ip.notas según tu esquema real
+            # 2. Obtener los ítems asociados (Mapeamos 'notas' a 'notes' y forzamos floats nativos de Python)
             cur.execute(
-                """SELECT ip.nombre_personalizado, ip.unidad, ip.cantidad, ip.precio_unitario, ip.total, ip.notas, c.nombre as cat_nombre
+                """SELECT 
+                    ip.nombre_personalizado, 
+                    ip.unidad, 
+                    ip.cantidad, 
+                    ip.precio_unitario, 
+                    ip.total, 
+                    ip.notas, 
+                    c.nombre as cat_nombre
                    FROM items_en_presupuesto ip
                    LEFT JOIN categorias c ON ip.categoria_id = c.id
                    WHERE ip.presupuesto_id = %s;""",
-                (presupuesto_id,)
+                (int(presupuesto_id),)
             )
+            
             items_list = []
             for r in cur.fetchall():
+                # Forzamos conversiones explícitas a tipos estándar para evitar fallas con tipos de Postgres
+                cant = int(r['cantidad']) if r['cantidad'] is not None else 0
+                precio = float(r['precio_unitario']) if r['precio_unitario'] is not None else 0.0
+                
+                # Si la columna calculada 'total' de Neon llega a demorar o devuelve problemas de tipo, la calculamos en caliente
+                tot_calculado = float(r['total']) if r['total'] is not None else (cant * precio)
+
                 items_list.append({
                     'nombre': r['nombre_personalizado'],
-                    'unidad': r['unidad'],
-                    'cantidad': r['cantidad'],
-                    'precio_unitario': r['precio_unitario'],
-                    'total': r['total'],
-                    'notas': r.get('notas') or '',
+                    'unidad': r['unidad'] or 'Unidad',
+                    'cantidad': cant,
+                    'precio_unitario': precio,
+                    'total': tot_calculado,
+                    'notas': r['notas'] or '',
+                    'notes': r['notas'] or '', # Duplicamos la clave por compatibilidad si el PDF la busca como 'notes'
                     'categoria': r['cat_nombre'] if r['cat_nombre'] else 'Sin Categoría'
                 })
+            
             presupuesto_data['items'] = items_list
 
+            # 3. Traer el nombre del cliente
             if presupuesto_data.get('cliente_id'):
                 cur.execute("SELECT nombre FROM clientes WHERE id = %s;", (presupuesto_data['cliente_id'],))
                 cli = cur.fetchone()
                 if cli: presupuesto_data['cliente_nombre'] = cli['nombre']
                 
+            # 4. Traer el nombre del lugar de trabajo
             if presupuesto_data.get('lugar_trabajo_id'):
                 cur.execute("SELECT nombre FROM lugares_trabajo WHERE id = %s;", (presupuesto_data['lugar_trabajo_id'],))
                 lug = cur.fetchone()
@@ -501,6 +522,7 @@ def get_presupuesto_para_editar(presupuesto_id: int) -> Dict:
 
         return presupuesto_data
     except Exception as e:
+        print(f"Error detallado al recuperar el nuevo presupuesto: {e}")
         return {}
     finally:
         conn.close()
