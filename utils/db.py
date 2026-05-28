@@ -398,14 +398,36 @@ def save_presupuesto_completo(
                         (nuevo_presupuesto_id, final_cat_id_mo, 'Mano de Obra', 'Unidad', 1, mano_obra, 'Mano de Obra', 'mano_obra')
                     )
 
+            
             conn.commit()
+
+            if 'items_data' in st.session_state:
+                for cat_nombre, data in st.session_state['items_data'].items():
+                    if 'items' in data:
+                        for item in data['items']:
+                            # Si la vista busca 'notes', le damos 'notes'
+                            if 'notas' in item and 'notes' not in item:
+                                item['notes'] = item['notas']
+                            # Si la vista busca 'notas', le damos 'notas'
+                            if 'notes' in item and 'notas' not in item:
+                                item['notas'] = item['notes']
+
+                            if 'cantidad' in item and 'precio_unitario' in item:
+                                item['total'] = int(item['cantidad']) * float(item['precio_unitario'])
+            
+            if 'categorias' in st.session_state:
+                for cat_nombre, data in st.session_state['categorias'].items():
+                    if 'items' in data:
+                        for item in data['items']:
+                            if 'notas' in item and 'notes' not in item:
+                                item['notes'] = item['notas']
+                            if 'notes' in item and 'notas' not in item:
+                                item['notas'] = item['notes']
+                            if 'cantidad' in item and 'precio_unitario' in item:
+                                item['total'] = int(item['cantidad']) * float(item['precio_unitario'])
+  
+
             return nuevo_presupuesto_id
-    except Exception as e:
-        conn.rollback()
-        st.error(f"Error al guardar presupuesto completo: {e}")
-        return None
-    finally:
-        conn.close()
 
 def _show_presupuesto_detail(presupuesto_id: int):
     conn = get_connection()
