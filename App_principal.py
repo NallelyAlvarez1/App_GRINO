@@ -25,12 +25,11 @@ if is_logged_in:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
-        if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
+        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True, key="btn_cerrar_sesion_sidebar"):
             sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
             st.rerun()
         st.divider()
-        
 
     st.header("🌱GRINO - Gestión de Presupuestos 🛠️")
 
@@ -238,7 +237,7 @@ if is_logged_in:
                 """,
                 unsafe_allow_html=True
             )
-            
+
     # --- 3. CONTENIDO PÚBLICO (USUARIO NO LOGUEADO) ---
 else:
     st.subheader("Bienvenido a Grino 🧮", divider="blue")
