@@ -15,7 +15,7 @@ def authenticate(email: str, password: str) -> bool:
             cur.execute(
                 """SELECT id, full_name, email 
                    FROM usuarios 
-                   WHERE lower(email) = %s AND password = crypt(%s, password);""",
+                   WHERE lower(email) = %s AND password_hash = crypt(%s, password_hash);""",
                 (clean_email, password)
             )
             user_row = cur.fetchone()
@@ -57,7 +57,7 @@ def register_user(email: str, password: str, full_name: str) -> bool:
             
             # Insertar el registro usando pgcrypto (factor de trabajo 8 para balance velocidad/seguridad)
             cur.execute(
-                """INSERT INTO usuarios (email, password, full_name) 
+                """INSERT INTO usuarios (email, password_hash, full_name) 
                    VALUES (%s, crypt(%s, gen_salt('bf', 8)), %s) RETURNING id;""",
                 (clean_email, password, full_name.strip())
             )
