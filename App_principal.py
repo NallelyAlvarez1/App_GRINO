@@ -118,9 +118,9 @@ if is_logged_in:
         width: 100%;
     }
     .modern-card h3 {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         text-align: center;
-        font-weight: 750;
+        font-weight: 700;
         color: white;
         margin: 0;
         line-height: 1;
@@ -160,7 +160,7 @@ if is_logged_in:
 
     /* Contenedor del PNG en la esquina inferior derecha */
     .card-img-container {
-        width: 45%;
+        width: 50%;
         height: 110%; /* Sobresale un poco hacia arriba para mejor look gamer */
         display: flex;
         justify-content: flex-end;
