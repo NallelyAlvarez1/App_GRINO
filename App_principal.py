@@ -25,27 +25,13 @@ if is_logged_in:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
-        if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True, key="btn_cerrar_sesion_sidebar"):
-            sign_out()
-            st.toast("Sesión cerrada correctamente", icon="🌱")
-            st.rerun()
-        st.divider()
-
-    st.header("🌱GRINO - Gestión de Presupuestos 🛠️")
-
-# ------------------- Contenido Principal de la App -------------------
-if is_logged_in:
-    supabase = get_supabase_client()
-
-    with st.sidebar:
-        st.markdown("**👤 Usuario:**")
-        st.markdown(f"`{st.session_state.usuario}`")
-
         if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
             sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
             st.rerun()
         st.divider()
+    
+    st.header("🌱GRINO - Gestión de Presupuestos 🛠️")
 
     # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD MODERNO) ------------------
     st.markdown("""
