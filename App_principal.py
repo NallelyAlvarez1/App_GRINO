@@ -7,7 +7,7 @@ def img_to_base64(path):
     try:
         with open(path, "rb") as f:
             return base64.b64encode(f.read()).decode()
-    except FileNotFoundError:
+    except Exception:
         return None
 
 st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
@@ -17,36 +17,30 @@ if 'user_id' not in st.session_state:
 if 'usuario' not in st.session_state:
     st.session_state.usuario = "Invitado"
 
-# Assuming you have a check_login function, using a dummy for this example
-# Replace with: is_logged_in = check_login()
-# For demonstration, I will force login:
-is_logged_in = True 
-
+is_logged_in = check_login()
 
 # ------------------- Contenido Principal de la App -------------------
 if is_logged_in:
-    # supabase = get_supabase_client() # Uncomment for your database
+    supabase = get_supabase_client()
 
     with st.sidebar:
         st.markdown("**👤 Usuario:**")
         st.markdown(f"`{st.session_state.usuario}`")
 
         if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
-            # sign_out()
+            sign_out()
             st.toast("Sesión cerrada correctamente", icon="🌱")
-            # st.rerun()
+            st.rerun()
         st.divider()
 
-    # ------------------ ESTILOS GLOBALES Y DE TARJETAS (ESTILO DASHBOARD COLORIDO) ------------------
-    # The key is to add unique classes for colors and re-style the Streamlit buttons.
+    # ------------------ ESTILOS GLOBALES: TARJETAS CUADRADAS GAMER/MODERNAS ------------------
     st.markdown("""
     <style>
-    /* Fondo general de la app para que contrasten las tarjetas */
     .stApp {
-        background-color: #f1f5f9; /* Lighter background for pop */
+        background-color: #f8fafc;
     }
     
-    /* Banner de Bienvenida principal - updated to match the original gradient suggestion */
+    /* Banner de Bienvenida */
     .welcome-banner {
         background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
         border-radius: 20px;
@@ -78,124 +72,118 @@ if is_logged_in:
         font-weight: 600;
     }
 
-    /* Sección de Funcionalidades / Misiones */
     .section-title {
         color: #1e293b;
-        font-size: 1.6rem;
-        font-weight: 700;
-        margin-bottom: 25px;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
-    /* ********************************************************** */
-    /* Tarjetas Modernas COLORIDAS (Estilo de la imagen de referencia) */
-    /* ********************************************************** */
+    /* --- CONTENEDOR DE LA TARJETA (AHORA CUADRADA) --- */
     .modern-card {
-        border-radius: 20px;
-        padding: 30px;
-        text-align: left; /* Left alignment like the ref */
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        height: 380px; /* Increased height */
+        
+        /* Fuerza a que la tarjeta sea un cuadrado perfecto basado en su ancho */
+        width: 100%;
+        aspect-ratio: 1 / 1; 
+        
+        /* Distribución interna: Info arriba, fila interactiva abajo */
         display: flex;
         flex-direction: column;
-        justify-content: space-between; /* Space out content and button */
-        margin-bottom: 15px;
-        border: none; /* Removed border, using shadow and gradient */
+        justify-content: space-between;
         position: relative;
-        overflow: hidden; /* For inner gradient overflow */
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
-    /* Hover effect */
     .modern-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     }
 
-    /* Specific Card Color Gradients (like the ref image) */
-    .card-color-1 { background: linear-gradient(135deg, #f53d7a 0%, #f77062 100%); } /* Pink/Orange */
-    .card-color-2 { background: linear-gradient(135deg, #f9a03c 0%, #fbc27b 100%); } /* Orange/Gold */
-    .card-color-3 { background: linear-gradient(135deg, #626cfb 0%, #a4a9fe 100%); } /* Blue/Purple */
-    .card-color-4 { background: linear-gradient(135deg, #9154f3 0%, #c4a1fe 100%); } /* Purple/Lavender */
-    .card-color-5 { background: linear-gradient(135deg, #10b981 0%, #a7f3d0 100%); } /* Green/Mint */
+    /* Colores de Fondo (Gradients intensos estilo juego) */
+    .card-color-1 { background: linear-gradient(135deg, #ff3366 0%, #ff6b6b 100%); }
+    .card-color-2 { background: linear-gradient(135deg, #ff9233 0%, #ffbe53 100%); }
+    .card-color-3 { background: linear-gradient(135deg, #3b52f6 0%, #6366f1 100%); }
+    .card-color-4 { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
+    .card-color-5 { background: linear-gradient(135deg, #059669 0%, #34d399 100%); }
 
-    /* Contenedor de la imagen: Cleaned up, no background box */
-    .card-img-container {
-        display: flex;
-        justify-content: center; /* Center image horizontally */
-        align-items: center;
-        margin-top: 10px;
-        margin-bottom: 20px;
-        flex-grow: 1; /* Allow image to take available space */
-    }
-
-    .modern-card img {
-        height: 120px; /* Larger images */
-        max-width: 90%;
-        object-fit: contain;
-        /* Optional: drop shadow for icons to stand out on dark gradient */
-        filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25)); 
-    }
-
-    /* Text styling inside cards */
-    .modern-card .card-text {
+    /* Textos alineados arriba a la izquierda */
+    .card-header-text {
         text-align: left;
-        margin-bottom: 10px;
     }
 
+    /* Título GRANDE como pediste */
     .modern-card h3 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: white; /* All text becomes white */
-        margin: 0 0 5px 0;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: white;
+        margin: 0 0 4px 0;
+        line-height: 1.2;
     }
 
+    /* Texto secundario/Subtítulo (ej: 'Genera un nuevo...') */
     .modern-card p {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.85); /* Slightly transparent white */
-        line-height: 1.4;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.85);
         margin: 0;
+        font-weight: 500;
+    }
+
+    /* Fila inferior para el botón y la imagen en la esquina */
+    .card-footer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        width: 100%;
+        height: 45%; /* Limita el espacio de la sección inferior */
+    }
+
+    /* Imagen posicionada abajo a la derecha de la card */
+    .card-img-corner {
+        width: 45%;
+        height: 100%;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-end;
+    }
+
+    .card-img-corner img {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.15));
+    }
+
+    /* Contenedor invisible para que el botón de Streamlit se posicione abajo a la izquierda */
+    .button-container-left {
+        width: 50%;
     }
     
-    /* ********************************************************** */
-    /* AJUSTE PARA BOTONES ST.BUTTON (Estilo 'Play Now' de la referencia) */
-    /* ********************************************************** */
+    /* --- REDISEÑO DEL BOTÓN NATIVO DE STREAMLIT --- */
     div.stButton > button {
-        border-radius: 30px !important; /* Fully rounded like the ref */
+        border-radius: 20px !important; /* Bordes redondeados tipo píldora */
         font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        padding: 10px 24px !important;
-        transition: all 0.3s;
-        text-transform: none; /* Kept text case */
-        letter-spacing: 0.5px;
-        width: 100%;
-        margin-top: auto; /* Push to the bottom */
-        display: block;
-    }
-
-    /* Native button look (white background, dark icon/text) */
-    div.stButton > button {
+        font-size: 0.85rem !important;
         background-color: white !important;
-        color: #0f172a !important; /* Dark text/icon */
+        color: #1e293b !important;
         border: none !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        transition: all 0.2s ease;
+        width: 100%;
+        padding: 8px 16px !important;
     }
-
-    /* Hover effect for the white button */
+    
     div.stButton > button:hover {
-        background-color: #f1f5f9 !important; /* Slight gray on hover */
-        transform: scale(1.03); /* Subtle pop on hover */
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        background-color: #f8fafc !important;
+        transform: scale(1.05);
     }
-
-    /* Customizing the Streamlit generic button icons (like the st.button icon) */
-    div.stButton > button span:first-child {
-        margin-right: 8px; /* Space between icon and text */
-        color: #0f172a !important;
-    }
-
     </style>
     """, unsafe_allow_html=True)
 
@@ -206,98 +194,99 @@ if is_logged_in:
             <h1>¡Hola, {st.session_state.usuario}! 👋</h1>
             <p>Gestiona y optimiza tus presupuestos desde tu panel de control.</p>
         </div>
-        <div class="welcome-badge">
-            🌱 GRINO APP
-        </div>
+        <div class="welcome-badge">🌱 GRINO APP</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 2. TÍTULO DE LA SECCIÓN DE MÓDULOS
+    # 2. TÍTULO DE LA SECCIÓN
     st.markdown('<div class="section-title">🛠️ Funcionalidades del Sistema</div>', unsafe_allow_html=True)
 
-    # Datos de las páginas. Added 'color_class' for unique backgrounds
+    # Estructura de datos con clases de colores e íconos para el botón
     paginas = [
         {
             "titulo": "Crear Presupuesto", 
-            "descripcion": "Genera un nuevo presupuesto detallado.", 
+            "descripcion": "Genera un nuevo documento.", 
             "pagina": "pages/1_📄_presupuestos.py", 
             "key": "pres",
             "imagen_path": "images/imagen1.png",
             "color_class": "card-color-1",
-            "icon": "📄" # Added emoji icons to st.button like the ref
+            "btn_text": "📄 Crear"
         },
         {
             "titulo": "Historial", 
-            "descripcion": "Revisa, edita o elimina presupuestos.", 
+            "descripcion": "Revisa tus registros.", 
             "pagina": "pages/2_🕒_historial.py", 
             "key": "hist",
             "imagen_path": "images/imagen2.png",
             "color_class": "card-color-2",
-            "icon": "🕒"
+            "btn_text": "🕒 Revisa"
         },
         {
             "titulo": "Estados de Pago", 
-            "descripcion": "Genera estados de pago de Clientes.", 
+            "descripcion": "Control de ingresos.", 
             "pagina": "pages/5_📄_Estados_de_Pago.py", 
             "key": "est",
             "imagen_path": "images/imagen5.png",
             "color_class": "card-color-3",
-            "icon": "💰"
+            "btn_text": "💰 Ver"
         },
         {
-            "titulo": "Clientes Registrados", 
-            "descripcion": "Revisa y/o elimina clientes registrados.", 
+            "titulo": "Clientes", 
+            "descripcion": "Base de datos.", 
             "pagina": "pages/3_👥_clientes_y_lugares.py", 
             "key": "cli",
             "imagen_path": "images/imagen3.png",
             "color_class": "card-color-4",
-            "icon": "👥"
+            "btn_text": "👥 Clientes"
         },
         {
             "titulo": "Ajustes", 
-            "descripcion": "Revisa y actualiza tus datos.", 
+            "descripcion": "Configura tu cuenta.", 
             "pagina": "pages/4_⚙️_perfil.py", 
             "key": "per",
             "imagen_path": "images/imagen4.png",
             "color_class": "card-color-5",
-            "icon": "⚙️"
+            "btn_text": "⚙️ Perfil"
         }
     ]
 
-    # 3. RENDERIZADO EN COLUMNAS CON EL NUEVO DISEÑO COLORIDO
+    # 3. RENDERIZADO EN 5 COLUMNAS
     cols = st.columns(5)
 
     for i, pagina in enumerate(paginas):
         with cols[i]:
-            # Convert image to base64 or use placeholder
             img_base64 = img_to_base64(pagina['imagen_path'])
-            if img_base64:
-                img_src = f"data:image/png;base64,{img_base64}"
-            else:
-                # Use a placeholder if file not found, you could use URL or different logic
-                img_src = "https://via.placeholder.com/150/FFFFFF/CCCCCC?text=Ícono" 
+            img_src = f"data:image/png;base64,{img_base64}" if img_base64 else "https://via.placeholder.com/120/FFFFFF/000000?text=Icon"
 
-            # Render of the colorful HTML card structure
-            # Note the use of pagina['color_class'] in the outer div
+            # Renderizado de la estructura visual (Fondo, Título grande y la Imagen abajo a la derecha)
             st.markdown(
                 f"""
                 <div class="modern-card {pagina['color_class']}">
-                    <div class="card-text">
+                    <div class="card-header-text">
                         <h3>{pagina['titulo']}</h3>
                         <p>{pagina['descripcion']}</p>
                     </div>
-                    <div class="card-img-container">
-                        <img src="{img_src}">
+                    <div class="card-footer-row">
+                        <div class="button-container-left">
+                            </div>
+                        <div class="card-img-corner">
+                            <img src="{img_src}">
+                        </div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            # Botón estilizado mediante CSS global - added emoji icon and title
-            if st.button(f"{pagina['icon']} Acceder", key=pagina['key'], use_container_width=True):
-                # st.switch_page(pagina['pagina'])
-                st.write(f"Accediendo a {pagina['titulo']}")
+            # Para superponer o colocar el botón de Streamlit exactamente abajo a la izquierda, 
+            # usamos un truco de margen negativo de CSS para subirlo al contenedor vacío asignado arriba.
+            st.markdown('<div style="margin-top: -65px; width: 48%; position: relative; z-index: 10;">', unsafe_allow_html=True)
+            if st.button(pagina['btn_text'], key=pagina['key'], use_container_width=True):
+                st.switch_page(pagina['pagina'])
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Espaciador inferior para evitar roturas de layout
+            st.markdown('<div style="margin-bottom: 50px;"></div>', unsafe_allow_html=True)
 
 
 else:
