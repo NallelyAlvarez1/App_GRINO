@@ -5,12 +5,13 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List, Tuple
 
 # =================================================================
-# FUNCIÓN DE INICIACIÓN DE BASE DE DATOS Y CONEXIÓN
+# FUNCIÓN DE INICIACIÓN DE BASE DE DATOS Y CONEXIÓN (CORREGIDA)
 # =================================================================
 
 def initialize_neon_connection():
-    """Establece una conexión directa con Neon utilizando st.secrets."""
+    """Establece una conexión directa con Neon utilizando st.secrets de forma plana."""
     try:
+        # Leemos las variables directamente desde la raíz de st.secrets
         conn = psycopg2.connect(
             host=st.secrets["DB_HOST"],
             database=st.secrets["DB_NAME"],
@@ -20,15 +21,14 @@ def initialize_neon_connection():
         )
         return conn
     except KeyError as e:
-        st.error(f"Error de configuración: Falta la credencial en `st.secrets`: {e}")
+        st.error(f"Error de configuración: Falta la credencial {e} en st.secrets.")
         st.stop()
     except Exception as e:
         st.error(f"Error al conectar a Neon (PostgreSQL): {e}")
         st.stop()
 
 def get_connection():
-    """Devuelve una nueva conexión. Nota: Las conexiones de psycopg2 no se deben 
-    cachear globalmente con @st.cache_resource si se usan hilos en Streamlit."""
+    """Devuelve una nueva conexión activa."""
     return initialize_neon_connection()
 
 # =================================================================
