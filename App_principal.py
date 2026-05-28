@@ -105,43 +105,41 @@ if is_logged_in:
         box-shadow: 0 20px 30px -8px rgba(0, 0, 0, 0.15);
     }
 
-    /* Gradiantes vibrantes estilo juego */
-    .card-color-1 { background: linear-gradient(135deg, #f43f5e 0%, #fda4af 100%); }
-    .card-color-2 { background: linear-gradient(135deg, #f97316 0%, #fde047 100%); }
-    .card-color-3 { background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%); }
-    .card-color-4 { background: linear-gradient(135deg, #7c3aed 0%, #c084fc 100%); }
-    .card-color-5 { background: linear-gradient(135deg, #059669 0%, #34d399 100%); }
+/* Colores de Fondo Suaves / Menos Saturados (Estilo Pastel) */
+    .card-color-1 { background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%); } /* Rosa claro */
+    .card-color-2 { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); } /* Naranja/Crema */
+    .card-color-3 { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); } /* Azul claro */
+    .card-color-4 { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); } /* Morado/Lavanda */
+    .card-color-5 { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); } /* Verde/Menta */
 
-    /* Título arriba a la izquierda */
+    /* Título arriba a la izquierda (Cambiado a color oscuro para contraste) */
     .card-top-title {
-        text-align: center;
+        text-align: left;
         width: 100%;
     }
     .modern-card h3 {
-        font-size: 1.2rem;
-        text-align: center;
-        font-weight: 700;
-        color: white;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0f172a; /* Texto oscuro */
         margin: 0;
-        line-height: 1;
+        line-height: 1.2;
     }
 
-    /* TEXTO DESCRIPTIVO CENTRADO EN EL ESPACIO MEDIO */
+    /* TEXTO DESCRIPTIVO (Cambiado a color oscuro para contraste) */
     .card-center-desc {
         flex-grow: 1;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 1px;
+        padding: 10px 5px;
     }
     .modern-card p {
         font-size: 0.95rem;
-        color: rgba(255, 255, 255, 0.95);
+        color: #334155; /* Texto gris oscuro */
         font-weight: 600;
         margin: 0;
-        line-height: 1;
-        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
+        line-height: 1.3;
     }
 
     /* FILA INFERIOR (Botón izquierdo, PNG derecho) */
