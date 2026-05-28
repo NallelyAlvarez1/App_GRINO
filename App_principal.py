@@ -85,7 +85,7 @@ if is_logged_in:
     /* --- TARJETA CUADRADA --- */
     .modern-card {
         border-radius: 24px;
-        padding: 2px;
+        padding: 5px;
         box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         
@@ -114,7 +114,7 @@ if is_logged_in:
 
     /* Título arriba a la izquierda */
     .card-top-title {
-        text-align: left;
+        text-align: center;
         width: 100%;
     }
     .modern-card h3 {
@@ -132,7 +132,7 @@ if is_logged_in:
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 10px 5px;
+        padding: 5px;
     }
     .modern-card p {
         font-size: 0.95rem;
