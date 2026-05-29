@@ -18,57 +18,17 @@ from utils.autosave import AutoSaveManager, capture_current_state, restore_draft
 
 st.markdown("""
 <style>
-
-/* Fondo */
-.stApp{
-    background:#f7f9fb;
-}
-
-/* Sidebar */
-[data-testid="stSidebar"]{
-    background:#ffffff;
-    border-right:1px solid #e5e7eb;
-}
-
-/* Cards */
-.card{
-    background:white;
-    padding:20px;
-    border-radius:16px;
-    border:1px solid #e5e7eb;
-    box-shadow:0 2px 8px rgba(0,0,0,.04);
-    margin-bottom:15px;
-}
-
-/* Inputs */
-.stTextInput,
-.stTextArea,
-.stSelectbox,
-.stNumberInput{
-    margin-bottom:0.2rem;
-}
-
-/* Botones */
-.stButton button{
-    border-radius:10px;
-    height:42px;
-}
-
-/* Métricas */
-.metric{
-    background:white;
-    padding:15px;
-    border-radius:12px;
-    border:1px solid #e5e7eb;
-    text-align:center;
-}
-
-/* Expander */
-.streamlit-expanderHeader{
-    font-size:1rem;
-    font-weight:600;
-}
-
+.stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea{
+    margin-bottom: -0.3rem;
+    margin-top: -0.4rem;
+            
+/* Reducir espacio en subheaders */
+h2, h3, h4 {
+    margin-top: 0.4rem !important;
+    margin-bottom: 0.4rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+}                
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,15 +144,7 @@ def autosave_with_debounce():
             st.toast("💾 Guardado automáticamente", icon="💾")
 
 # --- CONTENIDO PROTEGIDO ---
-st.markdown("""
-<div class="card">
-<h1>🌱 GRINO</h1>
-<p style="font-size:18px;color:#666">
-Generador de presupuestos para jardines y mantenciones
-</p>
-</div>
-""", unsafe_allow_html=True)
-
+st.header("📑 Generador de Presupuestos", divider="blue")
 
 # === BOTÓN PARA LIMPIAR TODO ===
 col1, col2 = st.columns([1, 1])
@@ -250,36 +202,8 @@ st.session_state['_last_cliente_id'] = cliente_id
 st.session_state['_last_lugar_id'] = lugar_trabajo_id
 st.session_state['_last_desc'] = descripcion
 
-
-
-
-
-
-
-m1,m2,m3 = st.columns(3)
-
-with m1:
-    st.metric("Cliente", cliente_nombre if 'cliente_nombre' in locals() else "-")
-
-with m2:
-    st.metric("Lugar", lugar_nombre if 'lugar_nombre' in locals() else "-")
-
-with m3:
-    total_items = sum(
-        len(v.get("items",[]))
-        for v in st.session_state.get("categorias",{}).values()
-    )
-    st.metric("Items", total_items)
-
-
-
-
-
-
-
-
 # ========== SECCIÓN PRINCIPAL ==========
-col1, col2 = st.columns([7,5])
+col1, col2, col3 = st.columns([8,0.5,12])
 
 with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
@@ -300,6 +224,9 @@ with col1:
     show_trabajos_simples(items_data)
 
 with col2:
+    st.text(" ")
+
+with col3:
     st.subheader("📊 Resumen del Presupuesto", divider="blue")
     total_general = show_resumen(items_data)
 
@@ -362,19 +289,7 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
 
                     autosave_manager.clear_draft()
 
-                    st.markdown("""
-                    ### 👤 Información General
-                    """)
-                    st.markdown("#### 📝 Descripción")
-
-                    descripcion = st.text_area(
-                        "",
-                        placeholder="Describe el trabajo a realizar...",
-                        height=120,
-                        label_visibility="collapsed"
-                    )
-
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns(3)
 
                     with col1:
 
