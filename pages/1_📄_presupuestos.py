@@ -147,37 +147,36 @@ def autosave_with_debounce():
 st.header("📑 Generador de Presupuestos", divider="blue")
 
 # === BOTÓN PARA LIMPIAR TODO ===
-col1, col2 = st.columns([1, 1])
-with col1:
-    if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
-        keys_to_delete = [
-            "categorias", "descripcion", "items_data", "cliente_id",
-            "cliente_nombre", "lugar_trabajo_id", "lugar_nombre",
-            "trabajos_simples", "total_general", "draft_restored"
-        ]
-        for key in keys_to_delete:
-            if key in st.session_state:
-                del st.session_state[key]
-        autosave_manager.clear_draft()
-        st.rerun()
 
-with col2:
-    if autosave_manager.has_draft():
-        draft_age = autosave_manager.get_draft_age()
-        st.caption(f"💾 Último guardado: {draft_age}")
-        
-        col_save, col_clear = st.columns(2)
-        with col_save:
-            if st.button("💾 Guardar", key="manual_save_main", use_container_width=True):
-                current_state = capture_current_state()
-                if autosave_manager.save_draft(current_state):
-                    st.toast("✅ Borrador guardado manualmente")
-        with col_clear:
-            if st.button("🗑️ Limpiar", key="clear_draft_main", use_container_width=True):
-                autosave_manager.clear_draft()
-                st.rerun()
-    else:
-        st.caption("💾 No hay borradores guardados")
+if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
+    keys_to_delete = [
+        "categorias", "descripcion", "items_data", "cliente_id",
+        "cliente_nombre", "lugar_trabajo_id", "lugar_nombre",
+        "trabajos_simples", "total_general", "draft_restored"
+    ]
+    for key in keys_to_delete:
+        if key in st.session_state:
+            del st.session_state[key]
+    autosave_manager.clear_draft()
+    st.rerun()
+
+
+if autosave_manager.has_draft():
+    draft_age = autosave_manager.get_draft_age()
+    st.caption(f"💾 Último guardado: {draft_age}")
+    
+    col_save, col_clear = st.columns(2)
+    with col_save:
+        if st.button("💾 Guardar", key="manual_save_main", use_container_width=True):
+            current_state = capture_current_state()
+            if autosave_manager.save_draft(current_state):
+                st.toast("✅ Borrador guardado manualmente")
+    with col_clear:
+        if st.button("🗑️ Limpiar", key="clear_draft_main", use_container_width=True):
+            autosave_manager.clear_draft()
+            st.rerun()
+else:
+    st.caption("💾 No hay borradores guardados")
 
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
 # Siempre mostrar el selector completo (como funcionaba antes)
