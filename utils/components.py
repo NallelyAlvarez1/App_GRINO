@@ -782,6 +782,20 @@ def show_resumen(items_data: Dict[str, Any]) -> float:
 
     total_general = 0
 
+    st.markdown(f"""
+    <div style="
+    background:#2E7D32;
+    padding:25px;
+    border-radius:16px;
+    color:white;
+    text-align:center;
+    margin-bottom:20px;
+    ">
+    <h4>Total Presupuesto</h4>
+    <h1>${total_general:,.0f}</h1>
+    </div>
+    """, unsafe_allow_html=True)
+    
     for cat, data in items_data.items():
         items = data.get('items', [])
         
