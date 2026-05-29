@@ -216,7 +216,7 @@ if is_logged_in:
     """, unsafe_allow_html=True)
 
     # 2. NUEVA FRASE DE LLAMADO A LA ACCIÓN
-    st.markdown('<div class="section-title">🚀 ¿Qué quieres hacer hoy? Elige una opción:</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🚀 ¿Qué quieres hacer hoy? </div>', unsafe_allow_html=True)
 
     # Estructura de datos limpia
     paginas = [
@@ -227,7 +227,7 @@ if is_logged_in:
             "key": "pres",
             "imagen_path": "images/imagen1.png",
             "color_class": "card-color-1",
-            "btn_text": "🎮 Crear"
+            "btn_text": "✏️ Crear"
         },
         {
             "titulo": "Historial", 
