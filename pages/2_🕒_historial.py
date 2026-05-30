@@ -23,88 +23,92 @@ except ImportError:
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (Dashboard de Alto Nivel)
+# ESTILOS CSS PERSONALIZADOS (Solución Avanzada de Interfaz)
 # -----------------------------------------------------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    /* Configuración de fuentes y espaciados generales */
     .stApp {
         font-family: 'Inter', sans-serif;
     }
+    
+    /* Reducir márgenes internos de inputs para que se vean compactos */
     .stTextInput, .stNumberInput, .stSelectbox, .stButton {
-        margin-bottom: -0.1rem;
-        margin-top: -0.1rem;
-    }
-    h2, h3, h4 {
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
-    }                
-    
-    /* --- TARJETAS SUPERIORES PARA FILTROS (Métricas con Selectores) --- */
-    .filtro-container-azul {
-        background-color: #f0f7ff;
-        border: 1px solid #e0f2fe;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-    }
-    .filtro-container-verde {
-        background-color: #f0fdf4;
-        border: 1px solid #dcfce7;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-    }
-    .filtro-container-amarillo {
-        background-color: #fefce8;
-        border: 1px solid #fef08a;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+        margin-bottom: 0rem !important;
+        margin-top: 0rem !important;
     }
     
-    /* Forzar que los labels dentro de las tarjetas tengan mejor contraste */
-    .filtro-container-azul label, .filtro-container-verde label, .filtro-container-amarillo label {
+    /* --- ARREGLO DE CAJAS DE FILTROS SUPERIORES --- */
+    /* Usamos data-testid para capturar las 3 columnas de la fila de filtros de forma limpia */
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]) {
+        gap: 1.5rem !important;
+    }
+    
+    /* Aplicar estilos e identificar las columnas de filtros por su orden estructural */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) {
+        background-color: #f0f7ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 12px !important;
+        padding: 18px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(2) {
+        background-color: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+        border-radius: 12px !important;
+        padding: 18px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(3) {
+        background-color: #fefce8 !important;
+        border: 1px solid #fef08a !important;
+        border-radius: 12px !important;
+        padding: 18px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+    }
+    
+    /* Estilo de los textos de etiquetas arriba de los selectores */
+    div[data-testid="stHorizontalBlock"] label {
         color: #334155 !important;
         font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 6px !important;
     }
 
-    /* --- DISEÑO DE FILAS E INTERACTIVIDAD --- */
-    /* Targetea y estiliza los st.container(border=True) */
+    /* --- DISEÑO DE LISTADO / FILAS --- */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
         border-radius: 12px !important;
         border: 1px solid #e2e8f0 !important;
         background-color: #ffffff !important;
-        margin-bottom: 6px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+        margin-bottom: 8px !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.01) !important;
         transition: all 0.2s ease-in-out !important;
     }
-    /* Efecto hover moderno al pasar el cursor sobre la fila */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
         border-color: #cbd5e1 !important;
         box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08) !important;
         transform: translateY(-1px);
     }
 
-    /* Cabeceras de las columnas del listado */
+    /* Cabeceras de las columnas */
     .table-header {
         font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: #64748b;
         font-weight: 700;
-        padding-bottom: 8px;
+        padding-bottom: 6px;
+        padding-top: 10px;
     }
 
-    /* --- TITULOS Y TAGS DE CLIENTE --- */
+    /* --- TEXTOS DEL CLIENTE --- */
     .client-title {
         font-weight: 600;
         color: #0f172a;
         font-size: 0.95rem;
     }
-    /* Tag de versión abajo del nombre en color Verde/Azul sutil */
+    /* Tag de versión debajo del nombre en tono azul/celeste */
     .version-tag {
         display: inline-block;
         background-color: #e0f2fe;
@@ -128,7 +132,7 @@ st.markdown("""
         border: 1px solid #e2e8f0;
     }
 
-    /* --- BADGES PARA ESTADOS DE CUENTA --- */
+    /* --- BADGES DE ESTADOS DE CUENTA --- */
     .badge-paid {
         background-color: #dcfce7;
         color: #15803d;
@@ -150,7 +154,7 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* Suavizar botones globales */
+    /* Botones redondeados modernos */
     .stButton > button {
         border-radius: 8px !important;
     }
@@ -183,7 +187,7 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS EN RECUADROS SUPERIORES DE COLORES
+# 2. FILTROS EN RECUADROS SUPERIORES DE COLORES (Código limpio)
 # -----------------------------------------------------------
 try:
     clientes = get_clientes(user_id) 
@@ -192,34 +196,29 @@ try:
     clientes_map = {id: nombre for id, nombre in clientes}
     lugares_map = {id: nombre for id, nombre in lugares}
     
+    # Creamos las columnas limpias, el CSS inyectado arriba se encarga de darles el color de fondo automáticamente
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
-        st.markdown('<div class="filtro-container-azul">', unsafe_allow_html=True)
         cliente_filtro_nombre = st.selectbox(
             "👤 Filtrar por cliente:",
             options=["Todos los clientes"] + list(clientes_map.values()),
         )
         cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col_f2:
-        st.markdown('<div class="filtro-container-verde">', unsafe_allow_html=True)
         lugar_filtro_nombre = st.selectbox(
             "📍 Filtrar por lugar:",
             options=["Todos los lugares"] + list(lugares_map.values()),
         )
         lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col_f3:
-        st.markdown('<div class="filtro-container-amarillo">', unsafe_allow_html=True)
         fecha_filtro = st.selectbox(
             "📅 Filtrar por fecha de emisión:",
             options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
             index=3
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         
 except Exception as e:
     st.error(f"Error al cargar filtros: {str(e)}")
@@ -243,10 +242,10 @@ elif fecha_filtro == "Últimos 90 días":
 if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
-st.write("##") # Margen estético limpio
+st.write("##")
 
 # -----------------------------------------------------------
-# 3. SECCIONES EN PESTAÑAS (Páginas de separación)
+# 3. SECCIONES EN PESTAÑAS
 # -----------------------------------------------------------
 tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Lista de Presupuestos", "📄 Estados de Cuenta"])
 
@@ -257,7 +256,7 @@ with tab_presupuestos:
     try:
         presupuestos = get_presupuestos_usuario(user_id, filtros) 
     except Exception as e:
-        st.error(f"❌ Error al obtener budgets: {str(e)}")
+        st.error(f"❌ Error al obtener presupuestos: {str(e)}")
         presupuestos = []
 
     if not presupuestos:
@@ -267,7 +266,6 @@ with tab_presupuestos:
         total_p = len(presupuestos)
         avg_p = suma_total_p / total_p if total_p else 0
 
-        # Tarjetas informativas simples de apoyo
         c1, c2, c3 = st.columns(3)
         c1.metric("Total Presupuestos", f"{total_p}")
         c2.metric("Suma Total", f"${suma_total_p:,.0f}")
@@ -275,7 +273,6 @@ with tab_presupuestos:
 
         st.write("##")
 
-        # Encabezado estructurado con clases CSS
         with st.container():
             col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.2, 2.5, 1.6, 1.8, 1, 3.2])
             col1.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
@@ -293,7 +290,6 @@ with tab_presupuestos:
                 total_display = safe_numeric_value(p.get('total', 0))
                 notas = p.get('notas', '')
 
-                # Renderizado del Cliente sin foto y la versión abajo en color sutil
                 nombre_cliente = p.get('cliente', {}).get('nombre', 'N/A').title()
                 tag_html = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-default">V1</span>'
                 col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{tag_html}', unsafe_allow_html=True)
@@ -327,7 +323,6 @@ with tab_presupuestos:
                     
                     with b3:
                         with st.popover("👁️", use_container_width=True):
-                            st.header("📋 Vista Previa")
                             _show_presupuesto_detail(presupuesto_id=p['id'])
 
                     with b4:
@@ -378,7 +373,6 @@ with tab_estados_cuenta:
                 cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
-                # Nombre de cliente limpio sin foto
                 col_cli.markdown(f'<div class="client-title" style="margin-top: 6px;">{cli_nom.title()}</div>', unsafe_allow_html=True)
                 col_lug.write(lug_nom.title())
                 
@@ -389,7 +383,6 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
                 
-                # Badge de Estado en formato píldora estilizada pastel
                 es_pagado = ec.get('pagado', False)
                 if es_pagado:
                     col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
