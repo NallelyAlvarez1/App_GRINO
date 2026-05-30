@@ -23,21 +23,111 @@ except ImportError:
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# CARGA DEL DISEÑO UNIFICADO DESDE EL ARCHIVO EXTERNO
+# ESTILOS CSS PERSONALIZADOS (Estilo Dashboard Moderno)
 # -----------------------------------------------------------
-def local_css(file_name):
-    with open(file_name, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# Cargamos los estilos globales (Cards de colores, tablas, fuentes, etc.)
-local_css("assets/style.css")
-
-# Renderizado del Header Premium e Idéntico en toda la App
 st.markdown("""
-<div class="main-header-container">
-    <h1 class="main-title"><span>🕒</span> Historial General de Documentos</h1>
-</div>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    /* Configuración de fuentes globales */
+    .stApp {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Títulos limpios */
+    h1, h2, h3 {
+        color: #1e293b !important;
+        font-weight: 700 !important;
+    }
+
+    /* --- DISEÑO DE FILAS (TABLA MODERNA) --- */
+    div[data-inner-background="true"] {
+        padding: 0.8rem 1rem !important;
+    }
+    
+    /* Contenedor de filas con bordes redondeados y efecto sutil */
+    div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        background-color: #ffffff !important;
+        margin-bottom: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03) !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    /* Cabeceras de las columnas */
+    .table-header {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-weight: 700;
+        padding: 10px 0;
+    }
+
+    /* --- ELEMENTOS DE TEXTO INTERNOS --- */
+    .client-title {
+        font-weight: 600;
+        color: #0f172a;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+    
+    /* Subetiqueta de versión abajo del nombre */
+    .version-tag {
+        display: inline-block;
+        background-color: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+    
+    .version-tag-empty {
+        display: inline-block;
+        background-color: #f1f5f9;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+
+    /* Badges para los estados de cuenta */
+    .status-badge-paid {
+        background-color: #dcfce7;
+        color: #166534;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid #bbf7d0;
+    }
+    
+    .status-badge-pending {
+        background-color: #fee2e2;
+        color: #991b1b;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid #fecaca;
+    }
+
+    /* Ajuste estético de los botones de acción */
+    .stButton > button {
+        border-radius: 6px !important;
+    }
+</style>
 """, unsafe_allow_html=True)
+
+st.header("🕒 Historial General de Documentos")
 
 is_logged_in = check_login()
 
@@ -63,7 +153,7 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS (Se embeben automáticamente en las tarjetas CSS)
+# 2. FILTROS REPRESENTADOS COMO RECUADROS DE COLORES SUPERIORES
 # -----------------------------------------------------------
 try:
     clientes = get_clientes(user_id) 
@@ -72,6 +162,7 @@ try:
     clientes_map = {id: nombre for id, nombre in clientes}
     lugares_map = {id: nombre for id, nombre in lugares}
     
+    # Renderizamos los selectores embebidos dentro de cajas HTML con colores pastel personalizados
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
@@ -83,7 +174,7 @@ try:
 
     with col_f2:
         lugar_filtro_nombre = st.selectbox(
-            "📍 Filtrar por lugar de trabajo:",
+            "📍 Filtrar por lugar:",
             options=["Todos los lugares"] + list(lugares_map.values()),
         )
         lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
@@ -110,7 +201,7 @@ fecha_inicio = None
 if fecha_filtro == "Últimos 7 días":
     fecha_inicio = datetime.now() - timedelta(days=7)
 elif fecha_filtro == "Últimos 30 días":
-    fecha_inicio = datetime.now() - timedelta(days=30)  # 💡 CORREGIDO: Asignación de variable reparada
+    datetime.now() - timedelta(days=30)
 elif fecha_filtro == "Últimos 90 días":
     fecha_inicio = datetime.now() - timedelta(days=90)
     
@@ -120,7 +211,7 @@ if fecha_inicio:
 st.write("##") # Margen de separación limpio
 
 # -----------------------------------------------------------
-# 3. SECCIONES EN PESTAÑAS (Tabs nativos estilizados)
+# 3. SECCIONES EN PESTAÑAS (Páginas de separación: Presupuestos vs Estados de Cuenta)
 # -----------------------------------------------------------
 tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Lista de Presupuestos", "📄 Estados de Cuenta"])
 
@@ -167,7 +258,7 @@ with tab_presupuestos:
 
                 # Mostrar Cliente y su versión abajo sin foto
                 nombre_cliente = p.get('cliente', {}).get('nombre', 'N/A').title()
-                badge_version = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-default">V1</span>'
+                badge_version = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-empty">V1</span>'
                 col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{badge_version}', unsafe_allow_html=True)
                 
                 col2.write(p.get('lugar', {}).get('nombre', 'N/A').title())
@@ -235,7 +326,7 @@ with tab_estados_cuenta:
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
                 # Cliente sin foto en Estados de Cuenta
-                col_cli.markdown(f'<div class="client-title" style="margin-top: 4px;">{cli_nom.title()}</div>', unsafe_allow_html=True)
+                col_cli.markdown(f'<div class="client-title">{cli_nom.title()}</div>', unsafe_allow_html=True)
                 col_lug.write(lug_nom.title())
                 
                 fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
@@ -245,12 +336,12 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
                 
-                # 💡 UNIFICADO: Clases de badges cambiadas para coincidir exactamente con style.css
+                # Renderizado de Badge Estilizado
                 es_pagado = ec.get('pagado', False)
                 if es_pagado:
-                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
                 else:
-                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
 
                 with col_acc:
                     ba1, ba2, ba3, ba4 = st.columns([1, 1, 1, 1])
