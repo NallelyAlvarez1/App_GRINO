@@ -6,7 +6,7 @@ from utils.db import (
     get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail,
-    get_estados_cuenta_usuario,  
+    get_estados_cuenta_usuario,
     delete_estado_cuenta
 )
 from utils.components import safe_numeric_value
@@ -18,12 +18,12 @@ except ImportError:
     def mostrar_boton_descarga_estado_cuenta(id): return None, "", False
 
 # -----------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
+# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
 # -----------------------------------------------------------
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (Solución Avanzada de Interfaz)
+# ESTILOS CSS INYECTADOS DE ALTO NIVEL
 # -----------------------------------------------------------
 st.markdown("""
 <style>
@@ -32,57 +32,61 @@ st.markdown("""
     .stApp {
         font-family: 'Inter', sans-serif;
     }
-    
-    /* Reducir márgenes internos de inputs para que se vean compactos */
-    .stTextInput, .stNumberInput, .stSelectbox, .stButton {
-        margin-bottom: 0rem !important;
-        margin-top: 0rem !important;
+
+    /* Reducción de márgenes por defecto en inputs */
+    .stSelectbox {
+        margin-top: -0.3rem !important;
     }
     
-    /* --- ARREGLO DE CAJAS DE FILTROS SUPERIORES --- */
-    /* Usamos data-testid para capturar las 3 columnas de la fila de filtros de forma limpia */
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]) {
-        gap: 1.5rem !important;
-    }
-    
-    /* Aplicar estilos e identificar las columnas de filtros por su orden estructural */
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) {
+    /* --- INTEGRACIÓN DE FILTROS DENTRO DE CARDS DE COLORES --- */
+    /* Mapeo exacto por orden de columnas en el layout (Filtro 1, 2 y 3) */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) {
         background-color: #f0f7ff !important;
-        border: 1px solid #bfdbfe !important;
+        border: 1px solid #bae6fd !important;
         border-radius: 12px !important;
-        padding: 18px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        padding: 16px 20px !important;
     }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(2) {
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #93c5fd !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) {
         background-color: #f0fdf4 !important;
         border: 1px solid #bbf7d0 !important;
         border-radius: 12px !important;
-        padding: 18px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        padding: 16px 20px !important;
     }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(3) {
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #86efac !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) {
         background-color: #fefce8 !important;
         border: 1px solid #fef08a !important;
         border-radius: 12px !important;
-        padding: 18px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        padding: 16px 20px !important;
     }
-    
-    /* Estilo de los textos de etiquetas arriba de los selectores */
-    div[data-testid="stHorizontalBlock"] label {
-        color: #334155 !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        margin-bottom: 6px !important;
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #fde047 !important;
     }
 
-    /* --- DISEÑO DE LISTADO / FILAS --- */
+    /* Estilo general para las etiquetas de los selectores */
+    div[data-testid="stColumn"] label p {
+        font-weight: 600 !important;
+        color: #334155 !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* --- FILAS INTERACTIVAS DEL HISTORIAL --- */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
         border-radius: 12px !important;
         border: 1px solid #e2e8f0 !important;
         background-color: #ffffff !important;
-        margin-bottom: 8px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.01) !important;
+        margin-bottom: 6px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.01) !important;
         transition: all 0.2s ease-in-out !important;
     }
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
@@ -91,24 +95,21 @@ st.markdown("""
         transform: translateY(-1px);
     }
 
-    /* Cabeceras de las columnas */
     .table-header {
         font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: #64748b;
         font-weight: 700;
-        padding-bottom: 6px;
-        padding-top: 10px;
+        padding-bottom: 8px;
     }
 
-    /* --- TEXTOS DEL CLIENTE --- */
     .client-title {
         font-weight: 600;
         color: #0f172a;
         font-size: 0.95rem;
     }
-    /* Tag de versión debajo del nombre en tono azul/celeste */
+    
     .version-tag {
         display: inline-block;
         background-color: #e0f2fe;
@@ -132,7 +133,6 @@ st.markdown("""
         border: 1px solid #e2e8f0;
     }
 
-    /* --- BADGES DE ESTADOS DE CUENTA --- */
     .badge-paid {
         background-color: #dcfce7;
         color: #15803d;
@@ -154,7 +154,6 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* Botones redondeados modernos */
     .stButton > button {
         border-radius: 8px !important;
     }
@@ -187,7 +186,7 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS EN RECUADROS SUPERIORES DE COLORES (Código limpio)
+# 2. FILTROS RENDERIZADOS DIRECTAMENTE EN LAS COLUMNAS ESTILIZADAS
 # -----------------------------------------------------------
 try:
     clientes = get_clientes(user_id) 
@@ -196,7 +195,7 @@ try:
     clientes_map = {id: nombre for id, nombre in clientes}
     lugares_map = {id: nombre for id, nombre in lugares}
     
-    # Creamos las columnas limpias, el CSS inyectado arriba se encarga de darles el color de fondo automáticamente
+    # Creamos las 3 columnas principales de filtros directamente en la raíz (sin st.expander)
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
@@ -208,7 +207,7 @@ try:
     
     with col_f2:
         lugar_filtro_nombre = st.selectbox(
-            "📍 Filtrar por lugar:",
+            "📌 Filtrar por lugar:",
             options=["Todos los lugares"] + list(lugares_map.values()),
         )
         lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
@@ -243,6 +242,8 @@ if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
 st.write("##")
+
+
 
 # -----------------------------------------------------------
 # 3. SECCIONES EN PESTAÑAS
