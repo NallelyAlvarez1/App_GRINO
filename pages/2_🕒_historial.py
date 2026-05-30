@@ -6,7 +6,7 @@ from utils.db import (
     get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail,
-    get_estados_cuenta_usuario,
+    get_estados_cuenta_usuario,  
     delete_estado_cuenta
 )
 from utils.components import safe_numeric_value
@@ -18,144 +18,97 @@ except ImportError:
     def mostrar_boton_descarga_estado_cuenta(id): return None, "", False
 
 # -----------------------------------------------------------
-# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
+# CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
 # -----------------------------------------------------------
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# ESTILOS CSS INYECTADOS DE ALTO NIVEL
+# ESTILOS CSS AVANZADOS Y MODERNOS
 # -----------------------------------------------------------
 st.markdown("""
 <style>
+    /* Importar tipografía moderna opcional si deseas */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    .stApp {
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Reducción de márgenes por defecto en inputs */
-    .stSelectbox {
-        margin-top: -0.3rem !important;
+    /* Reducción global de espaciados de inputs */
+    .stTextInput, .stNumberInput, .stSelectbox, .stButton {
+        margin-bottom: -0.1rem;
+        margin-top: -0.1rem;
     }
     
-    /* --- INTEGRACIÓN DE FILTROS DENTRO DE CARDS DE COLORES --- */
-    /* Mapeo exacto por orden de columnas en el layout (Filtro 1, 2 y 3) */
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) {
-        background-color: #f0f7ff !important;
-        border: 1px solid #bae6fd !important;
-        border-radius: 12px !important;
-        padding: 16px 20px !important;
-    }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) div[data-testid="stSelectbox"] > div {
-        background-color: #ffffff !important;
-        border: 1px solid #93c5fd !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) {
-        background-color: #f0fdf4 !important;
-        border: 1px solid #bbf7d0 !important;
-        border-radius: 12px !important;
-        padding: 16px 20px !important;
-    }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) div[data-testid="stSelectbox"] > div {
-        background-color: #ffffff !important;
-        border: 1px solid #86efac !important;
-    }
-
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) {
-        background-color: #fefce8 !important;
-        border: 1px solid #fef08a !important;
-        border-radius: 12px !important;
-        padding: 16px 20px !important;
-    }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stSelectbox"] > div {
-        background-color: #ffffff !important;
-        border: 1px solid #fde047 !important;
-    }
-
-    /* Estilo general para las etiquetas de los selectores */
-    div[data-testid="stColumn"] label p {
+    /* Encabezados limpios */
+    h1, h2, h3, h4 {
+        font-family: 'Inter', sans-serif !important;
         font-weight: 600 !important;
-        color: #334155 !important;
-        font-size: 0.9rem !important;
+        color: #2E4031 !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }                
+    
+    /* Estilizar contenedores de métricas */
+    div[data-testid="stMetricBlock"] {
+        background-color: #f8faf9;
+        border: 1px solid #eef2f0;
+        border-radius: 12px;
+        padding: 1rem !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
-
-    /* --- FILAS INTERACTIVAS DEL HISTORIAL --- */
+    
+    /* --- EFECTO TARJETA MODERNA --- */
+    /* Targetea los st.container(border=True) */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
         border-radius: 12px !important;
         border: 1px solid #e2e8f0 !important;
+        transition: all 0.25s ease-in-out !important;
         background-color: #ffffff !important;
-        margin-bottom: 6px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.01) !important;
-        transition: all 0.2s ease-in-out !important;
     }
+    
+    /* Efecto Hover interactivo para las filas */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
         border-color: #cbd5e1 !important;
         box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08) !important;
         transform: translateY(-1px);
     }
-
+    
+    /* Encabezados de tabla en negrita limpia */
     .table-header {
-        font-size: 0.78rem;
+        font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: #64748b;
-        font-weight: 700;
-        padding-bottom: 8px;
-    }
-
-    .client-title {
         font-weight: 600;
-        color: #0f172a;
-        font-size: 0.95rem;
+        padding-bottom: 0.5rem;
     }
     
-    .version-tag {
-        display: inline-block;
-        background-color: #e0f2fe;
-        color: #0369a1;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 6px;
-        margin-top: 4px;
-        border: 1px solid #bae6fd;
-    }
-    .version-tag-default {
-        display: inline-block;
-        background-color: #f1f5f9;
-        color: #475569;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 6px;
-        margin-top: 4px;
-        border: 1px solid #e2e8f0;
-    }
-
-    .badge-paid {
+    /* Badges de Estado del Pago */
+    .badge-pagado {
         background-color: #dcfce7;
         color: #15803d;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 4px 12px;
+        padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid #bbf7d0;
+        font-size: 0.85rem;
+        font-weight: 600;
         display: inline-block;
+        text-align: center;
+        border: 1px solid #bbf7d0;
     }
-    .badge-pending {
+    
+    .badge-pendiente {
         background-color: #fee2e2;
         color: #b91c1c;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 4px 12px;
+        padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid #fecaca;
+        font-size: 0.85rem;
+        font-weight: 600;
         display: inline-block;
+        text-align: center;
+        border: 1px solid #fecaca;
     }
-
-    .stButton > button {
-        border-radius: 8px !important;
+    
+    /* Suavizar las pestañas (Tabs) */
+    button[data-baseweb="tab"] {
+        font-size: 1rem !important;
+        font-weight: 500 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -186,44 +139,43 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS RENDERIZADOS DIRECTAMENTE EN LAS COLUMNAS ESTILIZADAS
+# 2. FILTROS
 # -----------------------------------------------------------
-try:
-    clientes = get_clientes(user_id) 
-    lugares = get_lugares_trabajo(user_id)
+with st.expander("🔍 Filtros de Búsqueda Avanzada", expanded=True):
+    col1, col2, col3 = st.columns(3)
     
-    clientes_map = {id: nombre for id, nombre in clientes}
-    lugares_map = {id: nombre for id, nombre in lugares}
-    
-    # Creamos las 3 columnas principales de filtros directamente en la raíz (sin st.expander)
-    col_f1, col_f2, col_f3 = st.columns(3)
-    
-    with col_f1:
-        cliente_filtro_nombre = st.selectbox(
-            "👤 Filtrar por cliente:",
-            options=["Todos los clientes"] + list(clientes_map.values()),
-        )
-        cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
-    
-    with col_f2:
-        lugar_filtro_nombre = st.selectbox(
-            "📌 Filtrar por lugar:",
-            options=["Todos los lugares"] + list(lugares_map.values()),
-        )
-        lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
-    
-    with col_f3:
-        fecha_filtro = st.selectbox(
-            "📅 Filtrar por fecha de emisión:",
-            options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
-            index=3
-        )
+    try:
+        clientes = get_clientes(user_id) 
+        lugares = get_lugares_trabajo(user_id)
         
-except Exception as e:
-    st.error(f"Error al cargar filtros: {str(e)}")
-    st.stop()
+        clientes_map = {id: nombre for id, nombre in clientes}
+        lugares_map = {id: nombre for id, nombre in lugares}
+        
+        with col1:
+            cliente_filtro_nombre = st.selectbox(
+                "Filtrar por cliente:",
+                options=["Todos los clientes"] + list(clientes_map.values()),
+            )
+            cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
+        
+        with col2:
+            lugar_filtro_nombre = st.selectbox(
+                "Filtrar por lugar:",
+                options=["Todos los lugares"] + list(lugares_map.values()),
+            )
+            lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
+        
+        with col3:
+            fecha_filtro = st.selectbox(
+                "Filtrar por fecha:",
+                options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
+                index=3
+            )
+            
+    except Exception as e:
+        st.error(f"Error al cargar filtros: {str(e)}")
+        st.stop()
 
-# Estructurar parámetros de filtros
 filtros = {}
 if cliente_filtro_id:
     filtros['cliente_id'] = cliente_filtro_id
@@ -241,17 +193,13 @@ elif fecha_filtro == "Últimos 90 días":
 if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
-st.write("##")
-
-
-
 # -----------------------------------------------------------
-# 3. SECCIONES EN PESTAÑAS
+# 3. SECCIONES EN PESTAÑAS (Tabs)
 # -----------------------------------------------------------
-tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Lista de Presupuestos", "📄 Estados de Cuenta"])
+tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Presupuestos Guardados", "📄 Estados de Cuenta Generados"])
 
 # =========================================================================
-# PESTAÑA A: LISTA DE PRESUPUESTOS
+# PESTAÑA A: PRESUPUESTOS
 # =========================================================================
 with tab_presupuestos:
     try:
@@ -269,36 +217,42 @@ with tab_presupuestos:
 
         c1, c2, c3 = st.columns(3)
         c1.metric("Total Presupuestos", f"{total_p}")
-        c2.metric("Suma Total", f"${suma_total_p:,.0f}")
-        c3.metric("Promedio", f"${avg_p:,.0f}")
+        c2.metric("Suma Total Presupuestos", f"${suma_total_p:,.0f}")
+        c3.metric("Promedio Presupuestos", f"${avg_p:,.0f}")
 
-        st.write("##")
+        st.write("##") # Pequeño separador visual limpio
+        st.subheader("📋 Lista de Presupuestos")
 
+        # Encabezado usando la clase CSS .table-header
         with st.container():
-            col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.2, 2.5, 1.6, 1.8, 1, 3.2])
+            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.3, 2.5, 0.9, 1.8, 2, 1, 3.5])
             col1.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col2.markdown('<div class="table-header">Lugar</div>', unsafe_allow_html=True)
             col3.markdown('<div class="table-header">Descripción</div>', unsafe_allow_html=True)
+            col4.markdown('<div class="table-header">Ver.</div>', unsafe_allow_html=True)
             col5.markdown('<div class="table-header">Fecha</div>', unsafe_allow_html=True)
             col6.markdown('<div class="table-header">Total</div>', unsafe_allow_html=True)
             col7.markdown('<div class="table-header">Ítems</div>', unsafe_allow_html=True)
             col8.markdown('<div class="table-header" style="text-align: center;">Acciones</div>', unsafe_allow_html=True)
 
         for p in presupuestos:
+            # El contenedor ahora tiene automáticamente sombra e interactividad gracias al CSS inyectado arriba
             with st.container(border=True):
-                col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.2, 2.5, 1.6, 1.8, 1, 3.2])
+                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.3, 2.5, 0.9, 1.8, 2, 1, 3.5])
             
                 total_display = safe_numeric_value(p.get('total', 0))
                 notas = p.get('notas', '')
 
-                nombre_cliente = p.get('cliente', {}).get('nombre', 'N/A').title()
-                tag_html = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-default">V1</span>'
-                col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{tag_html}', unsafe_allow_html=True)
-                
+                col1.write(f"**{p.get('cliente', {}).get('nombre', 'N/A').title()}**")
                 col2.write(p.get('lugar', {}).get('nombre', 'N/A').title())
                 
                 descripcion = p.get('descripcion', 'Sin descripción')
-                col3.write(descripcion[:30] + "..." if len(descripcion) > 30 else descripcion)
+                if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
+                    col3.write(descripcion[:30] + "...")
+                else:
+                    col3.write(descripcion)
+
+                col4.write(f"`{notas}`" if notas else "")
 
                 fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
                 col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
@@ -313,6 +267,8 @@ with tab_presupuestos:
                         if st.button("✏️", key=f"edit_{p['id']}", help="Editar presupuesto", use_container_width=True):
                             st.session_state['presupuesto_a_editar_id'] = p['id'] 
                             st.session_state['presupuesto_cargado_automaticamente'] = False
+                            st.success("🔄 Redirigiendo...")
+                            time.sleep(0.5)
                             st.switch_page("pages/_✏️ Editar.py")
                     
                     with b2:
@@ -324,11 +280,13 @@ with tab_presupuestos:
                     
                     with b3:
                         with st.popover("👁️", use_container_width=True):
+                            st.header("📋 Vista Previa del Presupuesto")
                             _show_presupuesto_detail(presupuesto_id=p['id'])
 
                     with b4:
                         if st.button("🗑️", key=f"del_{p['id']}", help="Eliminar", use_container_width=True):
                             if delete_presupuesto(p['id'], user_id):
+                                st.success("✅ Eliminado")
                                 st.rerun()
 
 # =========================================================================
@@ -336,8 +294,9 @@ with tab_presupuestos:
 # =========================================================================
 with tab_estados_cuenta:
     try:
-        from utils.db import toggle_estado_pago_ec
-        estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
+        with st.spinner("🔄 Cargando estados de cuenta..."):
+            from utils.db import toggle_estado_pago_ec
+            estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
     except Exception as e:
         st.error(f"❌ Error al obtener estados de cuenta: {str(e)}")
         estados_cuenta = []
@@ -355,9 +314,10 @@ with tab_estados_cuenta:
         ec3.metric("Promedio Cobro", f"${avg_ec:,.0f}")
 
         st.write("##")
+        st.subheader("📋 Lista de Estados de Cuenta")
 
         with st.container():
-            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2.2, 1.4, 1.4, 1.4, 1.4, 1.5, 3.2])
+            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.4, 1.4, 1.4, 1.4, 1.4, 3])
             col_cli.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col_lug.markdown('<div class="table-header">Lugar de Trabajo</div>', unsafe_allow_html=True)
             col_fec.markdown('<div class="table-header">Fecha Emisión</div>', unsafe_allow_html=True)
@@ -369,12 +329,12 @@ with tab_estados_cuenta:
 
         for ec in estados_cuenta:
             with st.container(border=True):
-                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2.2, 1.4, 1.4, 1.4, 1.4, 1.5, 3.2])
+                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.4, 1.4, 1.4, 1.4, 1.4, 3])
                 
                 cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
-                col_cli.markdown(f'<div class="client-title" style="margin-top: 6px;">{cli_nom.title()}</div>', unsafe_allow_html=True)
+                col_cli.write(f"**{cli_nom.title()}**")
                 col_lug.write(lug_nom.title())
                 
                 fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
@@ -384,38 +344,59 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
                 
+                # Renderizar estado usando clases CSS sofisticadas (Badges estilizados)
                 es_pagado = ec.get('pagado', False)
                 if es_pagado:
-                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center;"><span class="badge-pagado">PAGADO</span></div>', unsafe_allow_html=True)
                 else:
-                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center;"><span class="badge-pendiente">PENDIENTE</span></div>', unsafe_allow_html=True)
 
                 with col_acc:
                     ba1, ba2, ba3, ba4 = st.columns([1, 1, 1, 1])
                     
+                    # 1. Descarga PDF
                     with ba1:
                         pdf_b, f_name, ok = mostrar_boton_descarga_estado_cuenta(ec['id'])
                         if ok and pdf_b:
-                            st.download_button(label="⬇️", data=pdf_b, file_name=f_name, mime="application/pdf", key=f"down_ec_{ec['id']}", use_container_width=True)
+                            st.download_button(
+                                label="⬇️",
+                                data=pdf_b,
+                                file_name=f_name,
+                                mime="application/pdf",
+                                key=f"down_ec_{ec['id']}",
+                                help="Descargar PDF",
+                                use_container_width=True
+                            )
                         else:
                             st.button("🚫", key=f"down_dis_ec_{ec['id']}", disabled=True, use_container_width=True)
                     
+                    # 2. Vista Previa
                     with ba2:
                         with st.popover("👁️", use_container_width=True):
+                            st.header("📄 Detalle de Estado de Cuenta")
                             st.write(f"**Documento N°:** {ec['id']:04d}")
+                            st.write(f"**Fecha:** {fec_emision}")
+                            st.divider()
                             st.info("Detalles adicionales del estado de cuenta.")
 
+                    # 3. Cambiar Estado de Pago
                     with ba3:
                         icono_pago = "💵" if not es_pagado else "🔄"
-                        if st.button(icono_pago, key=f"pay_ec_{ec['id']}", use_container_width=True):
+                        ayuda_pago = "Marcar como PAGADO" if not es_pagado else "Cambiar a PENDIENTE"
+                        if st.button(icono_pago, key=f"pay_ec_{ec['id']}", help=ayuda_pago, use_container_width=True):
                             if toggle_estado_pago_ec(ec['id'], not es_pagado):
                                 st.cache_data.clear()  
-                                st.toast(f"Estado N°{ec['id']} actualizado", icon="🌱")
+                                st.toast(f"Estado de cuenta N°{ec['id']} actualizado", icon="🌱")
                                 time.sleep(0.4)
                                 st.rerun()
 
+                    # 4. Eliminar
                     with ba4:
-                        if st.button("🗑️", key=f"del_ec_{ec['id']}", use_container_width=True):
+                        if st.button("🗑️", key=f"del_ec_{ec['id']}", help="Eliminar", use_container_width=True):
                             if delete_estado_cuenta(ec['id'], user_id):
                                 st.cache_data.clear()  
+                                st.success("✅ Eliminado")
+                                time.sleep(0.4)
                                 st.rerun()
+                            else:
+                                st.error("No se pudo eliminar.")
