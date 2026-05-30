@@ -6,7 +6,7 @@ from utils.db import (
     get_supabase_client, get_clientes, get_lugares_trabajo, 
     get_presupuestos_usuario, delete_presupuesto,
     _show_presupuesto_detail,
-    get_estados_cuenta_usuario,  
+    get_estados_cuenta_usuario,
     delete_estado_cuenta
 )
 from utils.components import safe_numeric_value
@@ -18,116 +18,178 @@ except ImportError:
     def mostrar_boton_descarga_estado_cuenta(id): return None, "", False
 
 # -----------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
+# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
 # -----------------------------------------------------------
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS (Estilo Dashboard Moderno)
+# ESTILOS CSS REUTILIZABLES PARA TODAS TUS PÁGINAS (HEADERS & FILTROS)
 # -----------------------------------------------------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    /* Configuración de fuentes globales */
+    /* Fuente e Identidad de la App */
     .stApp {
         font-family: 'Inter', sans-serif;
-    }
-    
-    /* Títulos limpios */
-    h1, h2, h3 {
-        color: #1e293b !important;
-        font-weight: 700 !important;
+        background-color: #f8fafc;
     }
 
-    /* --- DISEÑO DE FILAS (TABLA MODERNA) --- */
-    div[data-inner-background="true"] {
-        padding: 0.8rem 1rem !important;
+    /* --- DISEÑO PREMIUM DEL HEADER PRINCIPAL --- */
+    .main-header-container {
+        padding: 1.5rem 0 1rem 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
     }
-    
-    /* Contenedor de filas con bordes redondeados y efecto sutil */
+    .main-title {
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        letter-spacing: -0.02em;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .main-title span {
+        font-size: 2rem;
+    }
+
+    /* --- CONTENEDORES DE FILTROS SUPERIORES EN CARD --- */
+    /* Columna 1: Cliente (Azul) */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) {
+        background-color: #f0f7ff !important;
+        border: 1px solid #bae6fd !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(1) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #93c5fd !important;
+    }
+
+    /* Columna 2: Lugar (Verde) */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) {
+        background-color: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(2) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #86efac !important;
+    }
+
+    /* Columna 3: Fecha (Amarillo) */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) {
+        background-color: #fefce8 !important;
+        border: 1px solid #fef08a !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stSelectbox"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #fde047 !important;
+    }
+
+    /* Ajustes de tipografía para los labels de los filtros */
+    div[data-testid="stColumn"] label p {
+        font-weight: 600 !important;
+        color: #344155 !important;
+        font-size: 0.88rem !important;
+        margin-bottom: 6px !important;
+    }
+    .stSelectbox {
+        margin-top: -0.2rem !important;
+    }
+
+    /* --- LISTADO DE FILAS (TABLAS ESTILIZADAS) --- */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         border: 1px solid #e2e8f0 !important;
         background-color: #ffffff !important;
-        margin-bottom: 8px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
-        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 6px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.01) !important;
+        transition: all 0.2s ease-in-out !important;
     }
-    
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03) !important;
         border-color: #cbd5e1 !important;
+        box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08) !important;
+        transform: translateY(-1px);
     }
 
-    /* Cabeceras de las columnas */
     .table-header {
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: #64748b;
         font-weight: 700;
-        padding: 10px 0;
+        padding-bottom: 8px;
     }
 
-    /* --- ELEMENTOS DE TEXTO INTERNOS --- */
     .client-title {
         font-weight: 600;
         color: #0f172a;
         font-size: 0.95rem;
-        margin-bottom: 2px;
     }
     
-    /* Subetiqueta de versión abajo del nombre */
     .version-tag {
         display: inline-block;
         background-color: #e0f2fe;
         color: #0369a1;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
         padding: 1px 6px;
         border-radius: 4px;
+        margin-top: 4px;
+        border: 1px solid #bae6fd;
     }
-    
-    .version-tag-empty {
+    .version-tag-default {
         display: inline-block;
         background-color: #f1f5f9;
-        color: #64748b;
-        font-size: 0.75rem;
-        font-weight: 500;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 600;
         padding: 1px 6px;
         border-radius: 4px;
+        margin-top: 4px;
+        border: 1px solid #e2e8f0;
     }
 
-    /* Badges para los estados de cuenta */
-    .status-badge-paid {
+    .badge-paid {
         background-color: #dcfce7;
-        color: #166534;
-        font-size: 0.8rem;
+        color: #15803d;
+        font-size: 0.78rem;
         font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
         border: 1px solid #bbf7d0;
+        display: inline-block;
     }
-    
-    .status-badge-pending {
+    .badge-pending {
         background-color: #fee2e2;
-        color: #991b1b;
-        font-size: 0.8rem;
+        color: #b91c1c;
+        font-size: 0.78rem;
         font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
         border: 1px solid #fecaca;
+        display: inline-block;
     }
 
-    /* Ajuste estético de los botones de acción */
     .stButton > button {
-        border-radius: 6px !important;
+        border-radius: 8px !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.header("🕒 Historial General de Documentos")
+# --- EJECUCIÓN DEL HEADER ESTILIZADO CONTEMPORÁNEO ---
+st.markdown("""
+<div class="main-header-container">
+    <h1 class="main-title"><span>🕒</span> Historial General de Documentos</h1>
+</div>
+""", unsafe_allow_html=True)
 
 is_logged_in = check_login()
 
@@ -153,7 +215,7 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS REPRESENTADOS COMO RECUADROS DE COLORES SUPERIORES
+# 2. FILTROS RENDERIZADOS EN SUS PROPIAS CARDS DE COLORES
 # -----------------------------------------------------------
 try:
     clientes = get_clientes(user_id) 
@@ -162,7 +224,6 @@ try:
     clientes_map = {id: nombre for id, nombre in clientes}
     lugares_map = {id: nombre for id, nombre in lugares}
     
-    # Renderizamos los selectores embebidos dentro de cajas HTML con colores pastel personalizados
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
@@ -171,14 +232,14 @@ try:
             options=["Todos los clientes"] + list(clientes_map.values()),
         )
         cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
-
+    
     with col_f2:
         lugar_filtro_nombre = st.selectbox(
-            "📍 Filtrar por lugar:",
+            "📍 Filtrar por lugar de trabajo:",
             options=["Todos los lugares"] + list(lugares_map.values()),
         )
         lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
-  
+    
     with col_f3:
         fecha_filtro = st.selectbox(
             "📅 Filtrar por fecha de emisión:",
@@ -201,17 +262,17 @@ fecha_inicio = None
 if fecha_filtro == "Últimos 7 días":
     fecha_inicio = datetime.now() - timedelta(days=7)
 elif fecha_filtro == "Últimos 30 días":
-    datetime.now() - timedelta(days=30)
+    fecha_inicio = datetime.now() - timedelta(days=30)
 elif fecha_filtro == "Últimos 90 días":
     fecha_inicio = datetime.now() - timedelta(days=90)
     
 if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
-st.write("##") # Margen de separación limpio
+st.write("##") # Separación controlada
 
 # -----------------------------------------------------------
-# 3. SECCIONES EN PESTAÑAS (Páginas de separación: Presupuestos vs Estados de Cuenta)
+# 3. SECCIONES EN PESTAÑAS (Tabs)
 # -----------------------------------------------------------
 tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Lista de Presupuestos", "📄 Estados de Cuenta"])
 
@@ -228,9 +289,19 @@ with tab_presupuestos:
     if not presupuestos:
         st.info("🔍 No se encontraron presupuestos con los filtros seleccionados.")
     else:
-        # Encabezados limpios de tabla
+        suma_total_p = sum(safe_numeric_value(p.get('total', 0)) for p in presupuestos)
+        total_p = len(presupuestos)
+        avg_p = suma_total_p / total_p if total_p else 0
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Total Presupuestos", f"{total_p}")
+        c2.metric("Suma Total", f"${suma_total_p:,.0f}")
+        c3.metric("Promedio", f"${avg_p:,.0f}")
+
+        st.write("##")
+
         with st.container():
-            col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.3, 2.5, 1.8, 1.8, 1, 3.2])
+            col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.2, 2.5, 1.6, 1.8, 1, 3.2])
             col1.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col2.markdown('<div class="table-header">Lugar</div>', unsafe_allow_html=True)
             col3.markdown('<div class="table-header">Descripción</div>', unsafe_allow_html=True)
@@ -241,15 +312,15 @@ with tab_presupuestos:
 
         for p in presupuestos:
             with st.container(border=True):
-                col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.3, 2.5, 1.8, 1.8, 1, 3.2])
+                col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.2, 2.5, 1.6, 1.8, 1, 3.2])
             
                 total_display = safe_numeric_value(p.get('total', 0))
                 notas = p.get('notas', '')
 
-                # Mostrar Cliente y su versión abajo sin foto
+                # Renderizar Nombre de Cliente sin foto + Versión debajo en color suave
                 nombre_cliente = p.get('cliente', {}).get('nombre', 'N/A').title()
-                badge_version = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-empty">V1</span>'
-                col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{badge_version}', unsafe_allow_html=True)
+                tag_html = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-default">V1</span>'
+                col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{tag_html}', unsafe_allow_html=True)
                 
                 col2.write(p.get('lugar', {}).get('nombre', 'N/A').title())
                 
@@ -264,20 +335,25 @@ with tab_presupuestos:
 
                 with col8:
                     b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
+                    
                     with b1:
-                        if st.button("✏️", key=f"edit_{p['id']}", help="Editar", use_container_width=True):
+                        if st.button("✏️", key=f"edit_{p['id']}", help=\"Editar\", use_container_width=True):
                             st.session_state['presupuesto_a_editar_id'] = p['id'] 
                             st.session_state['presupuesto_cargado_automaticamente'] = False
                             st.switch_page("pages/_✏️ Editar.py")
+                    
                     with b2:
                         pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
                         if success and pdf_bytes:
                             st.download_button(label="⬇️", data=pdf_bytes, file_name=file_name, mime="application/pdf", key=f"down_{p['id']}", use_container_width=True)
                         else:
                             st.button("🚫", key=f"down_dis_{p['id']}", disabled=True, use_container_width=True)
+                    
                     with b3:
                         with st.popover("👁️", use_container_width=True):
+                            st.header("📋 Vista Previa")
                             _show_presupuesto_detail(presupuesto_id=p['id'])
+
                     with b4:
                         if st.button("🗑️", key=f"del_{p['id']}", help="Eliminar", use_container_width=True):
                             if delete_presupuesto(p['id'], user_id):
@@ -297,8 +373,19 @@ with tab_estados_cuenta:
     if not estados_cuenta:
         st.info("🔍 No se encontraron estados de cuenta con los filtros seleccionados.")
     else:
+        suma_total_ec = sum(safe_numeric_value(ec.get('total_neto', 0)) for ec in estados_cuenta)
+        total_ec = len(estados_cuenta)
+        avg_ec = suma_total_ec / total_ec if total_ec else 0
+
+        ec1, ec2, ec3 = st.columns(3)
+        ec1.metric("Total Estados Generados", f"{total_ec}")
+        ec2.metric("Saldo Total Pendiente", f"${suma_total_ec:,.0f}")
+        ec3.metric("Promedio Cobro", f"${avg_ec:,.0f}")
+
+        st.write("##")
+
         with st.container():
-            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2, 1.4, 1.4, 1.4, 1.4, 1.5, 3])
+            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2.2, 1.4, 1.4, 1.4, 1.4, 1.5, 3.2])
             col_cli.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col_lug.markdown('<div class="table-header">Lugar de Trabajo</div>', unsafe_allow_html=True)
             col_fec.markdown('<div class="table-header">Fecha Emisión</div>', unsafe_allow_html=True)
@@ -310,13 +397,12 @@ with tab_estados_cuenta:
 
         for ec in estados_cuenta:
             with st.container(border=True):
-                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2, 1.4, 1.4, 1.4, 1.4, 1.5, 3])
+                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2.2, 1.4, 1.4, 1.4, 1.4, 1.5, 3.2])
                 
                 cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
-                # Cliente sin foto en Estados de Cuenta
-                col_cli.markdown(f'<div class="client-title">{cli_nom.title()}</div>', unsafe_allow_html=True)
+                col_cli.markdown(f'<div class="client-title" style="margin-top: 6px;">{cli_nom.title()}</div>', unsafe_allow_html=True)
                 col_lug.write(lug_nom.title())
                 
                 fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
@@ -326,12 +412,11 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
                 
-                # Renderizado de Badge Estilizado
                 es_pagado = ec.get('pagado', False)
                 if es_pagado:
-                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
                 else:
-                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 4px;"><span class="badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
 
                 with col_acc:
                     ba1, ba2, ba3, ba4 = st.columns([1, 1, 1, 1])
@@ -346,7 +431,7 @@ with tab_estados_cuenta:
                     with ba2:
                         with st.popover("👁️", use_container_width=True):
                             st.write(f"**Documento N°:** {ec['id']:04d}")
-                            st.info("Detalles adicionales.")
+                            st.info("Detalles adicionales del estado de cuenta.")
 
                     with ba3:
                         icono_pago = "💵" if not es_pagado else "🔄"
