@@ -23,92 +23,135 @@ except ImportError:
 st.set_page_config(page_title="Historial", page_icon="🌱", layout="wide")
 
 # -----------------------------------------------------------
-# ESTILOS CSS AVANZADOS Y MODERNOS
+# ESTILOS CSS PERSONALIZADOS (Estilo Dashboard Moderno)
 # -----------------------------------------------------------
 st.markdown("""
 <style>
-    /* Importar tipografía moderna opcional si deseas */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    /* Reducción global de espaciados de inputs */
-    .stTextInput, .stNumberInput, .stSelectbox, .stButton {
-        margin-bottom: -0.1rem;
-        margin-top: -0.1rem;
+    /* Configuración de fuentes globales */
+    .stApp {
+        font-family: 'Inter', sans-serif;
     }
     
-    /* Encabezados limpios */
-    h1, h2, h3, h4 {
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 600 !important;
-        color: #2E4031 !important;
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
-    }                
+    /* Títulos limpios */
+    h1, h2, h3 {
+        color: #1e293b !important;
+        font-weight: 700 !important;
+    }
+
+    /* --- CONTENEDORES DE FILTROS SUPERIORES (Estilo Tarjetas) --- */
+    div[data-testid="stExpander"] {
+        border: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
     
-    /* Estilizar contenedores de métricas */
-    div[data-testid="stMetricBlock"] {
-        background-color: #f8faf9;
-        border: 1px solid #eef2f0;
+    .filtro-card-azul {
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
         border-radius: 12px;
-        padding: 1rem !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .filtro-card-verde {
+        background-color: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .filtro-card-amarillo {
+        background-color: #fefce8;
+        border: 1px solid #fef08a;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+
+    /* --- DISEÑO DE FILAS (TABLA MODERNA) --- */
+    div[data-inner-background="true"] {
+        padding: 0.8rem 1rem !important;
     }
     
-    /* --- EFECTO TARJETA MODERNA --- */
-    /* Targetea los st.container(border=True) */
+    /* Contenedor de filas con bordes redondeados y efecto sutil */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]) {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         border: 1px solid #e2e8f0 !important;
-        transition: all 0.25s ease-in-out !important;
         background-color: #ffffff !important;
+        margin-bottom: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     
-    /* Efecto Hover interactivo para las filas */
     div[data-testid="element-container"] + div:has(div[data-inner-background="true"]):hover {
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03) !important;
         border-color: #cbd5e1 !important;
-        box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08) !important;
-        transform: translateY(-1px);
     }
-    
-    /* Encabezados de tabla en negrita limpia */
+
+    /* Cabeceras de las columnas */
     .table-header {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: #64748b;
+        font-weight: 700;
+        padding: 10px 0;
+    }
+
+    /* --- ELEMENTOS DE TEXTO INTERNOS --- */
+    .client-title {
         font-weight: 600;
-        padding-bottom: 0.5rem;
+        color: #0f172a;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
     }
     
-    /* Badges de Estado del Pago */
-    .badge-pagado {
-        background-color: #dcfce7;
-        color: #15803d;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
+    /* Subetiqueta de versión abajo del nombre */
+    .version-tag {
         display: inline-block;
-        text-align: center;
+        background-color: #e0f2fe;
+        color: #0369a1;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+    
+    .version-tag-empty {
+        display: inline-block;
+        background-color: #f1f5f9;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+
+    /* Badges para los estados de cuenta */
+    .status-badge-paid {
+        background-color: #dcfce7;
+        color: #166534;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 6px;
         border: 1px solid #bbf7d0;
     }
     
-    .badge-pendiente {
+    .status-badge-pending {
         background-color: #fee2e2;
-        color: #b91c1c;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.85rem;
+        color: #991b1b;
+        font-size: 0.8rem;
         font-weight: 600;
-        display: inline-block;
-        text-align: center;
+        padding: 4px 12px;
+        border-radius: 6px;
         border: 1px solid #fecaca;
     }
-    
-    /* Suavizar las pestañas (Tabs) */
-    button[data-baseweb="tab"] {
-        font-size: 1rem !important;
-        font-weight: 500 !important;
+
+    /* Ajuste estético de los botones de acción */
+    .stButton > button {
+        border-radius: 6px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -139,43 +182,50 @@ user_id = st.session_state.user_id
 supabase = get_supabase_client()
 
 # -----------------------------------------------------------
-# 2. FILTROS
+# 2. FILTROS REPRESENTADOS COMO RECUADROS DE COLORES SUPERIORES
 # -----------------------------------------------------------
-with st.expander("🔍 Filtros de Búsqueda Avanzada", expanded=True):
-    col1, col2, col3 = st.columns(3)
+try:
+    clientes = get_clientes(user_id) 
+    lugares = get_lugares_trabajo(user_id)
     
-    try:
-        clientes = get_clientes(user_id) 
-        lugares = get_lugares_trabajo(user_id)
+    clientes_map = {id: nombre for id, nombre in clientes}
+    lugares_map = {id: nombre for id, nombre in lugares}
+    
+    # Renderizamos los selectores embebidos dentro de cajas HTML con colores pastel personalizados
+    col_f1, col_f2, col_f3 = st.columns(3)
+    
+    with col_f1:
+        st.markdown('<div class="filtro-card-azul">', unsafe_allow_html=True)
+        cliente_filtro_nombre = st.selectbox(
+            "👤 Filtrar por cliente:",
+            options=["Todos los clientes"] + list(clientes_map.values()),
+        )
+        cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col_f2:
+        st.markdown('<div class="filtro-card-verde">', unsafe_allow_html=True)
+        lugar_filtro_nombre = st.selectbox(
+            "📍 Filtrar por lugar:",
+            options=["Todos los lugares"] + list(lugares_map.values()),
+        )
+        lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col_f3:
+        st.markdown('<div class="filtro-card-amarillo">', unsafe_allow_html=True)
+        fecha_filtro = st.selectbox(
+            "📅 Filtrar por fecha de emisión:",
+            options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
+            index=3
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        clientes_map = {id: nombre for id, nombre in clientes}
-        lugares_map = {id: nombre for id, nombre in lugares}
-        
-        with col1:
-            cliente_filtro_nombre = st.selectbox(
-                "Filtrar por cliente:",
-                options=["Todos los clientes"] + list(clientes_map.values()),
-            )
-            cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
-        
-        with col2:
-            lugar_filtro_nombre = st.selectbox(
-                "Filtrar por lugar:",
-                options=["Todos los lugares"] + list(lugares_map.values()),
-            )
-            lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
-        
-        with col3:
-            fecha_filtro = st.selectbox(
-                "Filtrar por fecha:",
-                options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
-                index=3
-            )
-            
-    except Exception as e:
-        st.error(f"Error al cargar filtros: {str(e)}")
-        st.stop()
+except Exception as e:
+    st.error(f"Error al cargar filtros: {str(e)}")
+    st.stop()
 
+# Estructurar parámetros de filtros
 filtros = {}
 if cliente_filtro_id:
     filtros['cliente_id'] = cliente_filtro_id
@@ -186,17 +236,19 @@ fecha_inicio = None
 if fecha_filtro == "Últimos 7 días":
     fecha_inicio = datetime.now() - timedelta(days=7)
 elif fecha_filtro == "Últimos 30 días":
-    fecha_inicio = datetime.now() - timedelta(days=30)
+    datetime.now() - timedelta(days=30)
 elif fecha_filtro == "Últimos 90 días":
     fecha_inicio = datetime.now() - timedelta(days=90)
     
 if fecha_inicio:
     filtros['fecha_inicio'] = fecha_inicio
 
+st.write("##") # Margen de separación limpio
+
 # -----------------------------------------------------------
-# 3. SECCIONES EN PESTAÑAS (Tabs)
+# 3. SECCIONES EN PESTAÑAS (Páginas de separación: Presupuestos vs Estados de Cuenta)
 # -----------------------------------------------------------
-tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Presupuestos Guardados", "📄 Estados de Cuenta Generados"])
+tab_presupuestos, tab_estados_cuenta = st.tabs(["📋 Lista de Presupuestos", "📄 Estados de Cuenta"])
 
 # =========================================================================
 # PESTAÑA A: PRESUPUESTOS
@@ -211,48 +263,33 @@ with tab_presupuestos:
     if not presupuestos:
         st.info("🔍 No se encontraron presupuestos con los filtros seleccionados.")
     else:
-        suma_total_p = sum(safe_numeric_value(p.get('total', 0)) for p in presupuestos)
-        total_p = len(presupuestos)
-        avg_p = suma_total_p / total_p if total_p else 0
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Total Presupuestos", f"{total_p}")
-        c2.metric("Suma Total Presupuestos", f"${suma_total_p:,.0f}")
-        c3.metric("Promedio Presupuestos", f"${avg_p:,.0f}")
-
-        st.write("##") # Pequeño separador visual limpio
-        st.subheader("📋 Lista de Presupuestos")
-
-        # Encabezado usando la clase CSS .table-header
+        # Encabezados limpios de tabla
         with st.container():
-            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.3, 2.5, 0.9, 1.8, 2, 1, 3.5])
+            col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.3, 2.5, 1.8, 1.8, 1, 3.2])
             col1.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col2.markdown('<div class="table-header">Lugar</div>', unsafe_allow_html=True)
             col3.markdown('<div class="table-header">Descripción</div>', unsafe_allow_html=True)
-            col4.markdown('<div class="table-header">Ver.</div>', unsafe_allow_html=True)
             col5.markdown('<div class="table-header">Fecha</div>', unsafe_allow_html=True)
             col6.markdown('<div class="table-header">Total</div>', unsafe_allow_html=True)
             col7.markdown('<div class="table-header">Ítems</div>', unsafe_allow_html=True)
             col8.markdown('<div class="table-header" style="text-align: center;">Acciones</div>', unsafe_allow_html=True)
 
         for p in presupuestos:
-            # El contenedor ahora tiene automáticamente sombra e interactividad gracias al CSS inyectado arriba
             with st.container(border=True):
-                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2.3, 2.5, 0.9, 1.8, 2, 1, 3.5])
+                col1, col2, col3, col5, col6, col7, col8 = st.columns([2.5, 2.3, 2.5, 1.8, 1.8, 1, 3.2])
             
                 total_display = safe_numeric_value(p.get('total', 0))
                 notas = p.get('notas', '')
 
-                col1.write(f"**{p.get('cliente', {}).get('nombre', 'N/A').title()}**")
+                # Mostrar Cliente y su versión abajo sin foto
+                nombre_cliente = p.get('cliente', {}).get('nombre', 'N/A').title()
+                badge_version = f'<span class="version-tag">{notas}</span>' if notas else '<span class="version-tag-empty">V1</span>'
+                col1.markdown(f'<div class="client-title">{nombre_cliente}</div>{badge_version}', unsafe_allow_html=True)
+                
                 col2.write(p.get('lugar', {}).get('nombre', 'N/A').title())
                 
                 descripcion = p.get('descripcion', 'Sin descripción')
-                if descripcion and descripcion != 'Sin descripción' and len(descripcion) > 30:
-                    col3.write(descripcion[:30] + "...")
-                else:
-                    col3.write(descripcion)
-
-                col4.write(f"`{notas}`" if notas else "")
+                col3.write(descripcion[:30] + "..." if len(descripcion) > 30 else descripcion)
 
                 fecha_str = p.get('fecha_creacion', datetime.now().isoformat())
                 col5.write(fecha_str.split('T')[0] if 'T' in fecha_str else fecha_str)
@@ -262,31 +299,23 @@ with tab_presupuestos:
 
                 with col8:
                     b1, b2, b3, b4 = st.columns([1, 1, 1, 1])
-                    
                     with b1:
-                        if st.button("✏️", key=f"edit_{p['id']}", help="Editar presupuesto", use_container_width=True):
+                        if st.button("✏️", key=f"edit_{p['id']}", help="Editar", use_container_width=True):
                             st.session_state['presupuesto_a_editar_id'] = p['id'] 
                             st.session_state['presupuesto_cargado_automaticamente'] = False
-                            st.success("🔄 Redirigiendo...")
-                            time.sleep(0.5)
                             st.switch_page("pages/_✏️ Editar.py")
-                    
                     with b2:
                         pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
                         if success and pdf_bytes:
                             st.download_button(label="⬇️", data=pdf_bytes, file_name=file_name, mime="application/pdf", key=f"down_{p['id']}", use_container_width=True)
                         else:
                             st.button("🚫", key=f"down_dis_{p['id']}", disabled=True, use_container_width=True)
-                    
                     with b3:
                         with st.popover("👁️", use_container_width=True):
-                            st.header("📋 Vista Previa del Presupuesto")
                             _show_presupuesto_detail(presupuesto_id=p['id'])
-
                     with b4:
                         if st.button("🗑️", key=f"del_{p['id']}", help="Eliminar", use_container_width=True):
                             if delete_presupuesto(p['id'], user_id):
-                                st.success("✅ Eliminado")
                                 st.rerun()
 
 # =========================================================================
@@ -294,9 +323,8 @@ with tab_presupuestos:
 # =========================================================================
 with tab_estados_cuenta:
     try:
-        with st.spinner("🔄 Cargando estados de cuenta..."):
-            from utils.db import toggle_estado_pago_ec
-            estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
+        from utils.db import toggle_estado_pago_ec
+        estados_cuenta = get_estados_cuenta_usuario(user_id, filtros)
     except Exception as e:
         st.error(f"❌ Error al obtener estados de cuenta: {str(e)}")
         estados_cuenta = []
@@ -304,20 +332,8 @@ with tab_estados_cuenta:
     if not estados_cuenta:
         st.info("🔍 No se encontraron estados de cuenta con los filtros seleccionados.")
     else:
-        suma_total_ec = sum(safe_numeric_value(ec.get('total_neto', 0)) for ec in estados_cuenta)
-        total_ec = len(estados_cuenta)
-        avg_ec = suma_total_ec / total_ec if total_ec else 0
-
-        ec1, ec2, ec3 = st.columns(3)
-        ec1.metric("Total Estados Generados", f"{total_ec}")
-        ec2.metric("Saldo Total Pendiente", f"${suma_total_ec:,.0f}")
-        ec3.metric("Promedio Cobro", f"${avg_ec:,.0f}")
-
-        st.write("##")
-        st.subheader("📋 Lista de Estados de Cuenta")
-
         with st.container():
-            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.4, 1.4, 1.4, 1.4, 1.4, 3])
+            col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2, 1.4, 1.4, 1.4, 1.4, 1.5, 3])
             col_cli.markdown('<div class="table-header">Cliente</div>', unsafe_allow_html=True)
             col_lug.markdown('<div class="table-header">Lugar de Trabajo</div>', unsafe_allow_html=True)
             col_fec.markdown('<div class="table-header">Fecha Emisión</div>', unsafe_allow_html=True)
@@ -329,12 +345,13 @@ with tab_estados_cuenta:
 
         for ec in estados_cuenta:
             with st.container(border=True):
-                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2, 2, 1.4, 1.4, 1.4, 1.4, 1.4, 3])
+                col_cli, col_lug, col_fec, col_sub, col_abo, col_net, col_est, col_acc = st.columns([2.5, 2, 1.4, 1.4, 1.4, 1.4, 1.5, 3])
                 
                 cli_nom = ec.get('cliente', {}).get('nombre', 'N/A') if ec.get('cliente') else 'N/A'
                 lug_nom = ec.get('lugar_trabajo', {}).get('nombre', 'N/A') if ec.get('lugar_trabajo') else 'N/A'
                 
-                col_cli.write(f"**{cli_nom.title()}**")
+                # Cliente sin foto en Estados de Cuenta
+                col_cli.markdown(f'<div class="client-title">{cli_nom.title()}</div>', unsafe_allow_html=True)
                 col_lug.write(lug_nom.title())
                 
                 fec_emision = ec.get('fecha_emision', datetime.now().isoformat())
@@ -344,59 +361,39 @@ with tab_estados_cuenta:
                 col_abo.write(f"-${safe_numeric_value(ec.get('abono_monto', 0)):,.0f}")
                 col_net.write(f"**${safe_numeric_value(ec.get('total_neto', 0)):,.0f}**")
                 
-                # Renderizar estado usando clases CSS sofisticadas (Badges estilizados)
+                # Renderizado de Badge Estilizado
                 es_pagado = ec.get('pagado', False)
                 if es_pagado:
-                    col_est.markdown('<div style="text-align: center;"><span class="badge-pagado">PAGADO</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-paid">PAGADO</span></div>', unsafe_allow_html=True)
                 else:
-                    col_est.markdown('<div style="text-align: center;"><span class="badge-pendiente">PENDIENTE</span></div>', unsafe_allow_html=True)
+                    col_est.markdown('<div style="text-align: center; margin-top: 5px;"><span class="status-badge-pending">PENDIENTE</span></div>', unsafe_allow_html=True)
 
                 with col_acc:
                     ba1, ba2, ba3, ba4 = st.columns([1, 1, 1, 1])
                     
-                    # 1. Descarga PDF
                     with ba1:
                         pdf_b, f_name, ok = mostrar_boton_descarga_estado_cuenta(ec['id'])
                         if ok and pdf_b:
-                            st.download_button(
-                                label="⬇️",
-                                data=pdf_b,
-                                file_name=f_name,
-                                mime="application/pdf",
-                                key=f"down_ec_{ec['id']}",
-                                help="Descargar PDF",
-                                use_container_width=True
-                            )
+                            st.download_button(label="⬇️", data=pdf_b, file_name=f_name, mime="application/pdf", key=f"down_ec_{ec['id']}", use_container_width=True)
                         else:
                             st.button("🚫", key=f"down_dis_ec_{ec['id']}", disabled=True, use_container_width=True)
                     
-                    # 2. Vista Previa
                     with ba2:
                         with st.popover("👁️", use_container_width=True):
-                            st.header("📄 Detalle de Estado de Cuenta")
                             st.write(f"**Documento N°:** {ec['id']:04d}")
-                            st.write(f"**Fecha:** {fec_emision}")
-                            st.divider()
-                            st.info("Detalles adicionales del estado de cuenta.")
+                            st.info("Detalles adicionales.")
 
-                    # 3. Cambiar Estado de Pago
                     with ba3:
                         icono_pago = "💵" if not es_pagado else "🔄"
-                        ayuda_pago = "Marcar como PAGADO" if not es_pagado else "Cambiar a PENDIENTE"
-                        if st.button(icono_pago, key=f"pay_ec_{ec['id']}", help=ayuda_pago, use_container_width=True):
+                        if st.button(icono_pago, key=f"pay_ec_{ec['id']}", use_container_width=True):
                             if toggle_estado_pago_ec(ec['id'], not es_pagado):
                                 st.cache_data.clear()  
-                                st.toast(f"Estado de cuenta N°{ec['id']} actualizado", icon="🌱")
+                                st.toast(f"Estado N°{ec['id']} actualizado", icon="🌱")
                                 time.sleep(0.4)
                                 st.rerun()
 
-                    # 4. Eliminar
                     with ba4:
-                        if st.button("🗑️", key=f"del_ec_{ec['id']}", help="Eliminar", use_container_width=True):
+                        if st.button("🗑️", key=f"del_ec_{ec['id']}", use_container_width=True):
                             if delete_estado_cuenta(ec['id'], user_id):
                                 st.cache_data.clear()  
-                                st.success("✅ Eliminado")
-                                time.sleep(0.4)
                                 st.rerun()
-                            else:
-                                st.error("No se pudo eliminar.")
