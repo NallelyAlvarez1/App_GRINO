@@ -40,35 +40,6 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* --- CONTENEDORES DE FILTROS SUPERIORES (Estilo Tarjetas) --- */
-    div[data-testid="stExpander"] {
-        border: none !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-    
-    .filtro-card-azul {
-        background-color: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-    }
-    .filtro-card-verde {
-        background-color: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-    }
-    .filtro-card-amarillo {
-        background-color: #fefce8;
-        border: 1px solid #fef08a;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-    }
-
     /* --- DISEÑO DE FILAS (TABLA MODERNA) --- */
     div[data-inner-background="true"] {
         padding: 0.8rem 1rem !important;
@@ -195,31 +166,25 @@ try:
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
-        st.markdown('<div class="filtro-card-azul">', unsafe_allow_html=True)
         cliente_filtro_nombre = st.selectbox(
             "👤 Filtrar por cliente:",
             options=["Todos los clientes"] + list(clientes_map.values()),
         )
         cliente_filtro_id = next((id for id, nombre in clientes_map.items() if nombre == cliente_filtro_nombre), None)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
+
     with col_f2:
-        st.markdown('<div class="filtro-card-verde">', unsafe_allow_html=True)
         lugar_filtro_nombre = st.selectbox(
             "📍 Filtrar por lugar:",
             options=["Todos los lugares"] + list(lugares_map.values()),
         )
         lugar_filtro_id = next((id for id, nombre in lugares_map.items() if nombre == lugar_filtro_nombre), None)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
+  
     with col_f3:
-        st.markdown('<div class="filtro-card-amarillo">', unsafe_allow_html=True)
         fecha_filtro = st.selectbox(
             "📅 Filtrar por fecha de emisión:",
             options=["Últimos 7 días", "Últimos 30 días", "Últimos 90 días", "Todos"],
             index=3
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         
 except Exception as e:
     st.error(f"Error al cargar filtros: {str(e)}")
