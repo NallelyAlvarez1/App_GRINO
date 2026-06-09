@@ -1,6 +1,5 @@
 import tempfile
 import os
-import base64
 from turtle import st
 import streamlit
 from datetime import datetime
