@@ -280,7 +280,8 @@ with tab_presupuestos:
                             st.session_state['presupuesto_cargado_automaticamente'] = False
                             st.switch_page("pages/_✏️ Editar.py")
                     with b2:
-                        pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(p['id'])
+                        # CÓDIGO CORRECTO
+                        success = mostrar_boton_descarga_pdf(p['id'])
                         if success and pdf_bytes:
                             st.download_button(label="⬇️", data=pdf_bytes, file_name=file_name, mime="application/pdf", key=f"down_{p['id']}", use_container_width=True)
                         else:
