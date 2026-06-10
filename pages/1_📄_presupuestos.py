@@ -16,99 +16,21 @@ from utils.components import (
 from utils.db import save_presupuesto_completo
 from utils.autosave import AutoSaveManager, capture_current_state, restore_draft_state
 
-# Configuración de página (Debe ser lo primero)
-st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
-
-# ------------------ ESTILOS VISUALES AVANZADOS (RED DISEÑO) ------------------
 st.markdown("""
 <style>
-/* Fondo general de la aplicación más limpio */
-.stApp {
-    background-color: #f8fafc;
-}
-
-/* Reducir espacios por defecto en inputs y títulos */
-.stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea {
+.stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea{
     margin-bottom: -0.3rem;
     margin-top: -0.4rem;
-}
+            
+/* Reducir espacio en subheaders */
 h2, h3, h4 {
     margin-top: 0.4rem !important;
     margin-bottom: 0.4rem !important;
     padding-top: 0.4rem !important;
     padding-bottom: 0.4rem !important;
-}
-
-/* --- Rediseño de Inputs generales de Streamlit --- */
-.stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
-    border-radius: 10px !important;
-    border: 1px solid #cbd5e1 !important;
-    background-color: #ffffff !important;
-    transition: all 0.2s ease;
-}
-.stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {
-    border-color: #10b981 !important; /* Verde Grino en Focus */
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
-}
-
-/* --- Bloques Contenedores (Cards) para las Columnas de Trabajo --- */
-div[data-testid="stColumn"] {
-    background-color: #ffffff;
-    padding: 26px;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
-}
-
-/* Estilo específico para destacar la columna del Resumen en el lado derecho */
-div[data-testid="stHorizontalBlock"] > div:last-child {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    border-left: 4px solid #10b981 !important; /* Línea de acento verde Grino */
-}
-
-/* Barra de control superior de borradores */
-.status-bar-container {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 25px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-
-/* --- BOTÓN DE GUARDADO PRINCIPAL (Estilo Premium) --- */
-div.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-weight: 700 !important;
-    font-size: 1.05rem !important;
-    padding: 12px 24px !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
-    transition: all 0.2s ease;
-    width: 100%;
-}
-div.stButton > button[kind="primary"]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3) !important;
-}
-
-/* --- BOTONES SECUNDARIOS (Limpiar, Agregar, etc) --- */
-div.stButton > button[kind="secondary"] {
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    background-color: #f1f5f9 !important;
-    color: #475569 !important;
-    border: 1px solid #e2e8f0 !important;
-}
-div.stButton > button[kind="secondary"]:hover {
-    background-color: #e2e8f0 !important;
-    color: #1e293b !important;
-}
+}                
 </style>
 """, unsafe_allow_html=True)
-
 
 def calcular_total(items_data: Dict[str, Any]) -> float:
     """Calcula el total general del presupuesto, usando la utilidad de valores seguros."""
@@ -124,6 +46,8 @@ def calcular_total(items_data: Dict[str, Any]) -> float:
             total += sum(safe_numeric_value(item.get('total', 0)) for item in items)
         total += safe_numeric_value(data.get('mano_obra', 0))
     return total
+
+st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
 
 
 # VERIFICAR LOGIN PRIMERO
@@ -189,7 +113,7 @@ with st.sidebar:
             draft = autosave_manager.load_draft()
             st.json(draft if draft else "No hay borrador")
     
-    if st.button("🚪 Cerrar Sesión", type="primary", use_container_width=True):
+    if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
         sign_out()
         st.toast("Sesión cerrada correctamente", icon="🌱")
         st.rerun()
@@ -204,6 +128,8 @@ if st.session_state.get('draft_restored', False):
                     cat_data['items'] = []
                 if 'mano_obra' not in cat_data:
                     cat_data['mano_obra'] = 0
+    # Limpiar flag después de procesar
+    # st.session_state['draft_restored'] = False  # Comentado para mantener el flag
 
 # --- FUNCIÓN DE AUTOGUARDADO ---
 def autosave_with_debounce():
@@ -217,24 +143,12 @@ def autosave_with_debounce():
             st.session_state._last_autosave_main = current_time
             st.toast("💾 Guardado automáticamente", icon="💾")
 
-# --- BANNER DE ENCABEZADO MEJORADO VISUALMENTE ---
-st.markdown("""
-<div style="
-    background: linear-gradient(135deg, #e6f4ea 0%, #f4fbf7 100%);
-    padding: 24px;
-    border-radius: 16px;
-    border: 1px solid #a7f3d0;
-    margin-bottom: 25px;
-">
-    <h1 style="color: #065f46; margin: 0; font-size: 2rem; font-weight: 800;">📑 Generador de Presupuestos</h1>
-    <p style="color: #047857; margin: 5px 0 0 0; font-size: 1rem; font-weight: 500;">Crea, edita y estructura cotizaciones comerciales de manera profesional.</p>
-</div>
-""", unsafe_allow_html=True)
+# --- CONTENIDO PROTEGIDO ---
+st.header("📑 Generador de Presupuestos", divider="blue")
 
-# ========== BARRA DE ESTADO / CONTROL SUPERIOR ==========
-st.markdown('<div class="status-bar-container">', unsafe_allow_html=True)
-col_btn1, col_btn2 = st.columns([1, 1])
-with col_btn1:
+# === BOTÓN PARA LIMPIAR TODO ===
+col1, col2 = st.columns([1, 1])
+with col1:
     if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
         keys_to_delete = [
             "categorias", "descripcion", "items_data", "cliente_id",
@@ -247,26 +161,26 @@ with col_btn1:
         autosave_manager.clear_draft()
         st.rerun()
 
-with col_btn2:
+with col2:
     if autosave_manager.has_draft():
         draft_age = autosave_manager.get_draft_age()
         st.caption(f"💾 Último guardado: {draft_age}")
         
         col_save, col_clear = st.columns(2)
         with col_save:
-            if st.button("💾 Guardar Borrador", key="manual_save_main", use_container_width=True):
+            if st.button("💾 Guardar", key="manual_save_main", use_container_width=True):
                 current_state = capture_current_state()
                 if autosave_manager.save_draft(current_state):
                     st.toast("✅ Borrador guardado manualmente")
         with col_clear:
-            if st.button("🗑️ Limpiar Borrador", key="clear_draft_main", use_container_width=True):
+            if st.button("🗑️ Limpiar", key="clear_draft_main", use_container_width=True):
                 autosave_manager.clear_draft()
                 st.rerun()
     else:
-        st.markdown("<div style='padding-top: 5px; color: #64748b; font-size: 0.9rem;'>💾 No hay borradores guardados activos</div>", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+        st.caption("💾 No hay borradores guardados")
 
 # ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
+# Siempre mostrar el selector completo (como funcionaba antes)
 cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
 
 # Guardar en session_state
@@ -288,9 +202,8 @@ st.session_state['_last_cliente_id'] = cliente_id
 st.session_state['_last_lugar_id'] = lugar_trabajo_id
 st.session_state['_last_desc'] = descripcion
 
-# ========== SECCIÓN PRINCIPAL EN 2 COLUMNAS (MÁS BALANCEADAS) ==========
-st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
-col1, col2 = st.columns([9, 11], gap="large")
+# ========== SECCIÓN PRINCIPAL ==========
+col1, col2, col3 = st.columns([8,0.5,12])
 
 with col1:
     st.subheader("📦 Items del Presupuesto", divider="blue")
@@ -306,18 +219,20 @@ with col1:
         autosave_with_debounce()
         st.session_state['_items_modified'] = False
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### 🛠️ Añadir trabajo rápido")
+    st.markdown(" ")
+    st.markdown("#### 🛠️Añadir trabajo")
     show_trabajos_simples(items_data)
 
 with col2:
+    st.text(" ")
+
+with col3:
     st.subheader("📊 Resumen del Presupuesto", divider="blue")
     total_general = show_resumen(items_data)
 
 # ========== SECCIÓN EDICIÓN ===========
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()):
-    st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-    st.subheader("✏️ Editar Items Agregados", divider="blue")
+    st.subheader("✏️ Editar Items", divider="blue")
     items_data = show_edited_presupuesto(user_id)
     
     if items_data:
@@ -327,10 +242,9 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
         autosave_with_debounce()
         st.session_state['_items_modified'] = False
 
-# ========== ACCIÓN DE GUARDADO FINAL ==========
+# ========== GUARDADO ==========
 if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()) and total_general > 0:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Guardar e Imprimir Presupuesto", type="primary", use_container_width=True):
+    if st.button("💾 Guardar Presupuesto", type="primary", width='stretch'):
         
         if not cliente_id or not lugar_trabajo_id:
             st.error("❌ Debe seleccionar un cliente y lugar de trabajo")
@@ -340,7 +254,7 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
             st.error("❌ El total del presupuesto debe ser mayor a cero")
             st.stop()
 
-        with st.spinner("Guardando presupuesto de forma segura..."):
+        with st.spinner("Guardando presupuesto..."):
             try:
                 presupuesto_id = save_presupuesto_completo(
                     user_id=user_id,
@@ -375,40 +289,20 @@ if items_data and any(len(data.get('items', [])) > 0 for data in items_data.valu
 
                     autosave_manager.clear_draft()
 
-                    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-                    col_action1, col_action2, col_action3 = st.columns(3)
+                    col1, col2, col3 = st.columns(3)
 
-                    with col_action1:
-                        pdf_bytes, file_name, success = mostrar_boton_descarga_pdf(
-                            presupuesto_id
-                        )
+                    with col1:
+                        mostrar_boton_descarga_pdf(presupuesto_id)
 
-                        if success and pdf_bytes:
-                            st.download_button(
-                                label="⬇️ Descargar Presupuesto PDF",
-                                data=pdf_bytes,
-                                file_name=file_name,
-                                mime="application/pdf",
-                                use_container_width=True,
-                                key=f"download_new_{presupuesto_id}"
-                            )
-                        else:
-                            st.button(
-                                "🚫 Error en PDF",
-                                disabled=True,
-                                use_container_width=True
-                            )
-
-                    with col_action2:
+                    with col2:
                         if st.button("🔄 Crear otro presupuesto", use_container_width=True):
                             for key in ['categorias', 'descripcion', 'items_data']:
                                 if key in st.session_state:
                                     del st.session_state[key]
                             autosave_manager.clear_draft()
                             st.rerun()
-                            
-                    with col_action3:
-                        st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial Completo", use_container_width=True)
+                    with col3:
+                        st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial", use_container_width=True)
 
                 else:
                     st.error("❌ Error al crear el presupuesto en la base de datos")
