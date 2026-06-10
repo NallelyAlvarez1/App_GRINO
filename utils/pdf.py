@@ -237,11 +237,10 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     continue
 
                 # 🟠 Caso 3: Insumos regulares (ESTE ERA EL PROBLEMA)
-                # 🟠 Caso 3: Insumos regulares (MODIFICADO)
-                pdf.cell(155, 6, item.get('nombre_personalizado', '').title(), border=1) # Ajusta el ancho según necesites
-                pdf.cell(35, 6, formato_moneda(item.get('total', 0)), border=1, ln=True, align="R")
-                total_categoria += item.get("total", 0)
-                continue # Pasamos al siguiente ítem
+                # --- NUEVA LÓGICA PARA INSUMOS REGULARES ---
+                texto_insumo = item.get('nombre_personalizado', '').title()
+                if not texto_insumo:
+                    texto_insumo = item.get('nombre', '').title()  # Fallback por si no hay nombre_personalizado
 
                 # Posición inicial
                 x_inicial = pdf.get_x()
@@ -367,7 +366,7 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], st
         
         # Nombre del archivo
         lugar_nombre = presupuesto['lugar']['nombre'].strip().replace(" ", "_")
-        file_name = f"Presupuesto {'lugar'}.pdf"
+        file_name = f"Presupuesto_{lugar_nombre}.pdf"
 
         return pdf_bytes, file_name, True
         
@@ -406,7 +405,7 @@ def generar_pdf_estado_cuenta(id_documento: int, cliente_nombre: str, lugar_nomb
         pdf.set_y(y_inicio_fondo + 5)
         pdf.set_x(MARGEN_X)
         pdf.set_font("helvetica", style='B', size=22)
-        pdf.cell(100, 10, "Estado de Cuenta N°", border=0, ln=0, align='L', fill=False)
+        pdf.cell(100, 10, "Estado de Cuenta", border=0, ln=0, align='L', fill=False)
 
         # b) Nombre de la Empresa
         pdf.set_x(MARGEN_X)
