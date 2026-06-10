@@ -320,7 +320,7 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
     except Exception as e:
         raise Exception(f"Error al generar PDF: {str(e)}")
     
-def mostrar_boton_descarga_pdf(presupuesto_id: int, label: str = "📄 Descargar PDF") -> bool:
+def mostrar_boton_descarga_pdf(presupuesto_id: int, label: str = "📄 Descargar PDF", key: str = None) -> bool:
     """
     Genera un PDF y muestra automáticamente el botón de descarga.
     Retorna True si todo salió bien.
@@ -379,7 +379,8 @@ def mostrar_boton_descarga_pdf(presupuesto_id: int, label: str = "📄 Descargar
             data=pdf_bytes,
             file_name=file_name,
             mime="application/pdf",
-            use_container_width=True
+            use_container_width=True,
+            key=Key
         )
 
         return True
