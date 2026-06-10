@@ -237,10 +237,11 @@ def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: 
                     continue
 
                 # 🟠 Caso 3: Insumos regulares (ESTE ERA EL PROBLEMA)
-                # --- NUEVA LÓGICA PARA INSUMOS REGULARES ---
-                texto_insumo = item.get('nombre_personalizado', '').title()
-                if not texto_insumo:
-                    texto_insumo = item.get('nombre', '').title()  # Fallback por si no hay nombre_personalizado
+                # 🟠 Caso 3: Insumos regulares (MODIFICADO)
+                pdf.cell(155, 6, item.get('nombre_personalizado', '').title(), border=1) # Ajusta el ancho según necesites
+                pdf.cell(35, 6, formato_moneda(item.get('total', 0)), border=1, ln=True, align="R")
+                total_categoria += item.get("total", 0)
+                continue # Pasamos al siguiente ítem
 
                 # Posición inicial
                 x_inicial = pdf.get_x()
