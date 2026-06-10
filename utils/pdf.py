@@ -26,21 +26,17 @@ def formato_moneda(valor: float) -> str:
     return f"${valor:,.0f}".replace(",", ".")
 
 # ==========  SECCION PDF ==========
-def generar_pdf(
-    cliente_nombre: str, 
-    categorias: Dict[str, Any], 
-    lugar_cliente: str, 
-    datos_emisor: Dict[str, str],  # <-- NUEVO PARÁMETRO
-    descripcion: Optional[str] = None
-) -> str:
+# ==========  SECCION PDF ==========
+# Datos constantes
+EMPRESA = "Jardines Alvarez"
+CONTACTO_NOMBRE = "Jhonny Nicolas Alvarez"
+CONTACTO_TELEFONO = "+569 6904 2513"
+CONTACTO_EMAIL = "jhonnynicolasalvarez@gmail.com"
+
+def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: str, descripcion: Optional[str] = None) -> str:
     """
-    Genera el PDF usando los datos dinámicos mapeados a los nombres originales.
+    Genera un archivo PDF con los datos del presupuesto
     """
-    # mapeamos los datos dinámicos a los mismos nombres para no cambiar el resto del código
-    EMPRESA = datos_emisor.get("empresa", "Mi Empresa")
-    CONTACTO_NOMBRE = datos_emisor.get("nombre", "Contacto")
-    CONTACTO_TELEFONO = datos_emisor.get("telefono", "")
-    CONTACTO_EMAIL = datos_emisor.get("email", "")
 
     try:
         pdf = FPDF()
