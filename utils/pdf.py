@@ -1,8 +1,7 @@
 import tempfile
 import os
 import base64
-from streamlit import st
-import streamlit
+import streamlit as st
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any
 from fpdf import FPDF
