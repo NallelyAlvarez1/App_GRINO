@@ -1,378 +1,312 @@
-import tempfile
+from typing import Any, Dict
+import streamlit as st
 import os
-import base64
-from datetime import datetime
-from typing import Optional, Tuple, Dict, Any
-from fpdf import FPDF
-from utils.db import get_presupuesto_detallado
-import locale
+import time
+import uuid
+from utils.pdf import generar_pdf, mostrar_boton_descarga_pdf
+from utils.auth import check_login, sign_out
+from utils.components import (
+    show_cliente_lugar_selector,
+    show_items_presupuesto,
+    show_trabajos_simples,
+    show_edited_presupuesto,
+    show_resumen,
+    safe_numeric_value
+)
+from utils.db import save_presupuesto_completo
+from utils.autosave import AutoSaveManager, capture_current_state, restore_draft_state
 
-try:
-    locale.setlocale(locale.LC_TIME, 'es_ES.utf8') 
-except locale.Error:
-    try:
-        locale.setlocale(locale.LC_TIME, 'es_ES')
-    except locale.Error:
-        try:
-            locale.setlocale(locale.LC_TIME, 'es')
-        except locale.Error:
-            print("No se pudo configurar el locale a español. Las fechas pueden aparecer en inglés.")
-
-# ========== FORMATO TEXTO ==========
-def formato_moneda(valor: float) -> str:
-    """Formatea valores monetarios con separadores de miles"""
-    # Usa coma como separador de decimales y punto para miles
-    return f"${valor:,.0f}".replace(",", ".")
-
-# ==========  SECCION PDF ==========
-# Datos constantes
-EMPRESA = "Jardines Alvarez"
-CONTACTO_NOMBRE = "Jhonny Nicolas Alvarez"
-CONTACTO_TELEFONO = "+569 6904 2513"
-CONTACTO_EMAIL = "jhonnynicolasalvarez@gmail.com"
-
-def generar_pdf(cliente_nombre: str, categorias: Dict[str, Any], lugar_cliente: str, descripcion: Optional[str] = None) -> str:
-    """
-    Genera un archivo PDF con los datos del presupuesto
-    """
-    try:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("helvetica", size=11)
-        
-        # Configurar márgenes
-        pdf.set_margins(left=10, top=10, right=10)
-        pdf.set_auto_page_break(auto=True, margin=15)
-
-        # Encabezado
-        COLOR_FONDO = (157, 178, 111)
-        pdf.set_fill_color(*COLOR_FONDO)
-
-        ALTO_FRANJA = 26
-        MARGEN_X = 10
-
-        # 1. Crear la franja de fondo verde
-        y_inicio_fondo = pdf.get_y()
-        pdf.set_xy(0, y_inicio_fondo)
-        pdf.set_fill_color(175, 192, 138)
-        pdf.cell(pdf.w, ALTO_FRANJA, "", border=0, ln=1, fill=True)
-
-        # 2. Texto sobre la franja
-        pdf.set_text_color(36, 36, 36)
-
-        # a)"Presupuesto"
-        pdf.set_y(y_inicio_fondo + 5)
-        pdf.set_x(MARGEN_X)
-        pdf.set_font("helvetica", style='B', size=24)
-        pdf.cell(100, 10, "Presupuesto", border=0, ln=0, align='L', fill=False)
-
-        # b)Nombre de la Empresa
-        pdf.set_x(MARGEN_X)
-        pdf.set_font("helvetica", style='', size=18)
-        pdf.cell(102, 26, EMPRESA.title(), border=0, ln=0, align='L', fill=False)
-
-        # c)Línea negra debajo del nombre de la empresa
-        y_linea = pdf.get_y() + 17
-        pdf.set_draw_color(56, 56, 56)
-        pdf.set_line_width(0.8)
-        pdf.line(MARGEN_X, y_linea, MARGEN_X + 85, y_linea)
-
-        # d)Línea verde debajo franja verde
-        y_linea = pdf.get_y() + 23 
-        pdf.set_draw_color(175, 192, 138)
-        pdf.set_line_width(0.8)
-        pdf.line(0, y_linea, pdf.w, y_linea)
-
-        # e)Lugar del cliente
-        pdf.set_font("helvetica", style='B', size=22)
-        pdf.set_y(y_inicio_fondo + (ALTO_FRANJA / 2) - 6)
-
-        ANCHO_UTIL_PAGINA = 190 
-        MARGEN_DERECHO = 10 
-        ANCHO_MULTICELL = 90
-        POSICION_X_INICIO = ANCHO_UTIL_PAGINA - ANCHO_MULTICELL + MARGEN_DERECHO
-
-        pdf.set_x(POSICION_X_INICIO) 
-        pdf.multi_cell(
-            w=ANCHO_MULTICELL, 
-            h=7,
-            txt=lugar_cliente.title(), 
-            border=0, 
-            align='C', 
-            fill=False
-        )
-
-        pdf.ln(15) 
-
-        # Fecha y datos de contacto
-        fecha_actual = datetime.now().strftime("%d %B, %Y")
-        pdf.ln(2)
-        pdf.set_font("helvetica", size=12)
-
-        # --- Columna izquierda: datos de contacto ---
-        x_inicio = pdf.get_x()
-        y_inicio = pdf.get_y()
-
-        pdf.cell(95, 5, CONTACTO_NOMBRE, border=0, ln=True)
-        pdf.cell(95, 5, CONTACTO_TELEFONO, border=0, ln=True)
-        pdf.cell(95, 5, CONTACTO_EMAIL, border=0, ln=True)
-
-        y_fin_contacto = pdf.get_y()
-
-        # Línea vertical
-        pdf.set_draw_color(56, 56, 56)
-        pdf.set_line_width(0.6)
-        x_linea = x_inicio + 80
-        pdf.line(x_linea, y_inicio, x_linea, y_fin_contacto)
-
-        # --- Columna derecha: Cliente y fecha ---
-        pdf.set_xy(x_linea + 5, y_inicio)
-
-        pdf.set_font("helvetica", style='B', size=10)
-        pdf.cell(40, 5, "Cliente:", border=0)
-
-        pdf.set_font("helvetica", size=12)
-        pdf.cell(0, 5, fecha_actual, border=0, ln=True, align='R')
-
-        pdf.set_x(x_linea + 5)
-        pdf.set_font("helvetica", size=12)
-        pdf.cell(0, 6, cliente_nombre.title(), border=0, ln=True)
-
-        # Franja 2
-        y_inicio_fondo = pdf.get_y()
-        MARGEN_X_FRANJA = 10
-        ALTO = 7
-
-        pdf.set_xy(MARGEN_X_FRANJA, y_inicio_fondo + 10)
-        pdf.set_fill_color(175, 192, 138)
-        pdf.cell(pdf.w - 2 * MARGEN_X_FRANJA, ALTO, "", border=0, ln=1, fill=True)
-
-        pdf.set_text_color(36, 36, 36)
-        pdf.set_font("helvetica", style='B', size=12)
-
-        pdf.set_y(y_inicio_fondo + (ALTO / 2) + 7) 
-        pdf.set_x(MARGEN_X_FRANJA + 5)
-        
-        texto_franja = descripcion.strip().capitalize() if descripcion else "Trabajo a Realizar"
-        pdf.cell(0, 6, texto_franja, border=0, ln=1, align='C')
-
-        pdf.ln(3)
-
-        # Presupuesto por categoría
-        total_general = 0
-
-        for categoria, data in categorias.items():
-            items = data.get('items', [])
-            mano_obra = data.get('mano_obra', 0)
-
-            # 👍 Insertar mano de obra como un ítem
-            if mano_obra > 0:
-                items.append({
-                    'nombre_personalizado': 'Mano de Obra',
-                    'unidad': 'Unidad',
-                    'cantidad': 1,
-                    'precio_unitario': mano_obra,
-                    'total': mano_obra,
-                    'es_mano_obra': True
-                })
-
-            if not items:
-                continue
-
-            # Nueva página si es necesario
-            if pdf.get_y() > 270:
-                pdf.add_page()
-                pdf.set_y(10)
-
-            # Título categoría
+st.markdown("""
+<style>
+.stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea{
+    margin-bottom: -0.3rem;
+    margin-top: -0.4rem;
             
-            # Título categoría
-            pdf.set_font("helvetica", style='B', size=12)
-            pdf.cell(200, 6, categoria.title(), ln=True)
+/* Reducir espacio en subheaders */
+h2, h3, h4 {
+    margin-top: 0.4rem !important;
+    margin-bottom: 0.4rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+}                
+</style>
+""", unsafe_allow_html=True)
 
-            # Línea debajo del título con ancho 0.5
-            pdf.set_line_width(0.8)
-            pdf.set_draw_color(194, 207, 165)
-            margen_izquierdo = 10
-            ancho_total = 190
-            y_linea = pdf.get_y() + 0.2
-            pdf.line(margen_izquierdo, y_linea, margen_izquierdo + ancho_total, y_linea)
-            pdf.ln(2)
+def calcular_total(items_data: Dict[str, Any]) -> float:
+    """Calcula el total general del presupuesto, usando la utilidad de valores seguros."""
+    total = 0
+    if not items_data or not isinstance(items_data, dict):
+        return 0
+        
+    for categoria, data in items_data.items():
+        if not isinstance(data, dict):
+            continue
+        items = data.get('items', [])
+        if isinstance(items, list):
+            total += sum(safe_numeric_value(item.get('total', 0)) for item in items)
+        total += safe_numeric_value(data.get('mano_obra', 0))
+    return total
 
-            # Encabezados de tabla con ancho 0.3
-            pdf.set_font("helvetica", style='B', size=11)
-            pdf.set_draw_color(56, 56, 56)
-            pdf.set_line_width(0.3)  # Establecemos 0.3 para la tabla
-            pdf.cell(75, 6, "Insumo", border='B')
-            pdf.cell(25, 6, "Unidad", border='B', align='C')
-            pdf.cell(20, 6, "Cantidad", border='B', align='C')
-            pdf.cell(35, 6, "Precio Unitario", border='B', align='C')
-            pdf.cell(35, 6, "Total", border='B', ln=True, align='C')
+st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
 
-            total_categoria = 0
 
-            for item in items:
+# VERIFICAR LOGIN PRIMERO
+is_logged_in = check_login()
 
-                if pdf.get_y() > 270:
-                    pdf.add_page()
-                    pdf.set_font("helvetica", style='B', size=11)
-                    pdf.cell(75, 6, "Insumo", border='B')
-                    pdf.cell(25, 6, "Unidad", border='B', align='C')
-                    pdf.cell(20, 6, "Cantidad", border='B', align='C')
-                    pdf.cell(35, 6, "Precio Unitario", border='B', align='C')
-                    pdf.cell(35, 6, "Total", border='B', ln=True, align='C')
+# SIEMPRE crear persistent session ID
+if 'persistent_session_id' not in st.session_state:
+    st.session_state['persistent_session_id'] = str(uuid.uuid4())
 
-                pdf.set_font("helvetica", size=11)
+# Obtener user_id (puede ser None)
+user_id = st.session_state.get('user_id')
 
-                # 🟢 Caso 1: Trabajo simple
-                if item.get("es_trabajo_simple"):
-                    pdf.cell(155, 6, item.get("nombre_personalizado", "").title(), border=1)
-                    pdf.cell(35, 6, formato_moneda(item.get("total", 0)), border=1, ln=True, align="R")
-                    total_categoria += item.get("total", 0)
-                    continue
+# Crear manager SIEMPRE (incluso sin login)
+autosave_manager = AutoSaveManager(user_id, "draft_presupuesto_principal")
 
-                # 🟡 Caso 2: Mano de obra especial
-                if item.get("es_mano_obra"):
-                    pdf.cell(155, 6, item.get("nombre_personalizado", "").title(), border=1)
-                    pdf.cell(35, 6, formato_moneda(item.get("total", 0)), border=1, ln=True, align="R")
-                    total_categoria += item.get("total", 0)
-                    continue
+# --- VERIFICAR BORRADOR (INCLUSO SIN LOGIN) ---
+if autosave_manager.has_draft() and not st.session_state.get('draft_restored', False):
+    draft = autosave_manager.load_draft()
+    if draft:
+        draft_age = autosave_manager.get_draft_age()
+        
+        # Usar un container para el mensaje que no desaparezca
+        warning_container = st.empty()
+        with warning_container.container():
+            st.warning(f"📝 Se encontró un borrador guardado {draft_age}")
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                if st.button("🔄 Cargar Borrador", use_container_width=True, key="load_draft_main"):
+                    restore_draft_state(draft)
+            with col2:
+                if st.button("👀 Ver Vista Previa", use_container_width=True, key="preview_draft_main"):
+                    with st.expander("Vista previa del borrador", expanded=True):
+                        st.json(draft)
+            with col3:
+                if st.button("🗑️ Descartar", use_container_width=True, key="discard_draft_main"):
+                    autosave_manager.clear_draft()
+                    st.rerun()
 
-                # --- Ajuste INSUMO con auto-alto ---
-                texto_insumo = item.get('nombre_personalizado', '').title()
+if not is_logged_in:
+    st.error("🔒 No has iniciado sesión. Serás redirigido al inicio en 5 segundos...")
+    progress_bar = st.progress(0)
+    for percent_complete in range(100):
+        time.sleep(0.05)
+        progress_bar.progress(percent_complete + 1)
+    st.switch_page("App_principal.py")
+    st.stop()
 
-                # Guardar posición inicial
-                x_inicial = pdf.get_x()
-                y_inicial = pdf.get_y()
+# CONTINUAR CON LA APP (USUARIO LOGUEADO)
+with st.sidebar:
+    st.markdown("**👤 Usuario:**")
+    st.markdown(f"`{st.session_state.usuario}`")
+    
+    # Botón de debug opcional
+    with st.expander("🔧 Debug", expanded=False):
+        if st.button("📊 Ver Estado Actual"):
+            st.write("Session State:", {
+                k: v for k, v in st.session_state.items() 
+                if not k.startswith('_') and k not in ['usuario', 'user_id']
+            })
+        
+        if st.button("📁 Ver Borrador Guardado"):
+            draft = autosave_manager.load_draft()
+            st.json(draft if draft else "No hay borrador")
+    
+    if st.button("🚪 Cerrar Sesión", type="primary", width='stretch'):
+        sign_out()
+        st.toast("Sesión cerrada correctamente", icon="🌱")
+        st.rerun()
 
-                ANCHO_INSUMO = 75
-                ALTO_LINEA = 6
+# Si se restauró un borrador, asegurar estructura de datos
+if st.session_state.get('draft_restored', False):
+    if 'items_data' in st.session_state:
+        items_data = st.session_state['items_data']
+        for cat_name, cat_data in items_data.items():
+            if isinstance(cat_data, dict):
+                if 'items' not in cat_data:
+                    cat_data['items'] = []
+                if 'mano_obra' not in cat_data:
+                    cat_data['mano_obra'] = 0
+    # Limpiar flag después de procesar
+    # st.session_state['draft_restored'] = False  # Comentado para mantener el flag
 
-                texto_insumo = item.get('nombre_personalizado', '').title()
+# --- FUNCIÓN DE AUTOGUARDADO ---
+def autosave_with_debounce():
+    """Autoguardado con control de frecuencia"""
+    current_time = time.time()
+    last_save = getattr(st.session_state, '_last_autosave_main', 0)
+    
+    if current_time - last_save > 30:
+        current_state = capture_current_state()
+        if autosave_manager.save_draft(current_state):
+            st.session_state._last_autosave_main = current_time
+            st.toast("💾 Guardado automáticamente", icon="💾")
 
-                # Posición inicial
-                x_inicial = pdf.get_x()
-                y_inicial = pdf.get_y()
+# --- CONTENIDO PROTEGIDO ---
+st.header("📑 Generador de Presupuestos", divider="blue")
 
-                ANCHO_INSUMO = 75
-                ALTO_LINEA = 6
+# === BOTÓN PARA LIMPIAR TODO ===
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.button("🧹 Limpiar / Nuevo presupuesto", type="secondary", use_container_width=True):
+        keys_to_delete = [
+            "categorias", "descripcion", "items_data", "cliente_id",
+            "cliente_nombre", "lugar_trabajo_id", "lugar_nombre",
+            "trabajos_simples", "total_general", "draft_restored"
+        ]
+        for key in keys_to_delete:
+            if key in st.session_state:
+                del st.session_state[key]
+        autosave_manager.clear_draft()
+        st.rerun()
 
-                # 1️⃣ MultiCell SOLO con borde izquierdo y top
-                pdf.multi_cell(
-                    ANCHO_INSUMO,
-                    ALTO_LINEA,
-                    texto_insumo,
-                    border='L',
-                    align='L'
+with col2:
+    if autosave_manager.has_draft():
+        draft_age = autosave_manager.get_draft_age()
+        st.caption(f"💾 Último guardado: {draft_age}")
+        
+        col_save, col_clear = st.columns(2)
+        with col_save:
+            if st.button("💾 Guardar", key="manual_save_main", use_container_width=True):
+                current_state = capture_current_state()
+                if autosave_manager.save_draft(current_state):
+                    st.toast("✅ Borrador guardado manualmente")
+        with col_clear:
+            if st.button("🗑️ Limpiar", key="clear_draft_main", use_container_width=True):
+                autosave_manager.clear_draft()
+                st.rerun()
+    else:
+        st.caption("💾 No hay borradores guardados")
+
+# ========== SECCIÓN CLIENTE, LUGAR y TRABAJO ==========
+# Siempre mostrar el selector completo (como funcionaba antes)
+cliente_id, cliente_nombre, lugar_trabajo_id, lugar_nombre, descripcion = show_cliente_lugar_selector(user_id)
+
+# Guardar en session_state
+st.session_state['cliente_id'] = cliente_id
+st.session_state['cliente_nombre'] = cliente_nombre
+st.session_state['lugar_trabajo_id'] = lugar_trabajo_id
+st.session_state['lugar_nombre'] = lugar_nombre
+st.session_state['descripcion'] = descripcion
+
+# Verificar cambios y autoguardar
+if any([
+    cliente_id != st.session_state.get('_last_cliente_id'),
+    lugar_trabajo_id != st.session_state.get('_last_lugar_id'),
+    descripcion != st.session_state.get('_last_desc')
+]):
+    autosave_with_debounce()
+
+st.session_state['_last_cliente_id'] = cliente_id
+st.session_state['_last_lugar_id'] = lugar_trabajo_id
+st.session_state['_last_desc'] = descripcion
+
+# ========== SECCIÓN PRINCIPAL ==========
+col1, col2, col3 = st.columns([8,0.5,12])
+
+with col1:
+    st.subheader("📦 Items del Presupuesto", divider="blue")
+    
+    # Pasar initial_data si existe
+    initial_items = st.session_state.get('items_data', None)
+    items_data = show_items_presupuesto(user_id, initial_data=initial_items)
+    
+    if items_data:
+        st.session_state['items_data'] = items_data
+    
+    if st.session_state.get('_items_modified', False):
+        autosave_with_debounce()
+        st.session_state['_items_modified'] = False
+
+    st.markdown(" ")
+    st.markdown("#### 🛠️Añadir trabajo")
+    show_trabajos_simples(items_data)
+
+with col2:
+    st.text(" ")
+
+with col3:
+    st.subheader("📊 Resumen del Presupuesto", divider="blue")
+    total_general = show_resumen(items_data)
+
+# ========== SECCIÓN EDICIÓN ===========
+if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()):
+    st.subheader("✏️ Editar Items", divider="blue")
+    items_data = show_edited_presupuesto(user_id)
+    
+    if items_data:
+        st.session_state['items_data'] = items_data
+    
+    if st.session_state.get('_items_modified', False):
+        autosave_with_debounce()
+        st.session_state['_items_modified'] = False
+
+# ========== GUARDADO ==========
+if items_data and any(len(data.get('items', [])) > 0 for data in items_data.values()) and total_general > 0:
+    if st.button("💾 Guardar Presupuesto", type="primary", width='stretch'):
+        
+        if not cliente_id or not lugar_trabajo_id:
+            st.error("❌ Debe seleccionar un cliente y lugar de trabajo")
+            st.stop()
+            
+        if total_general <= 0:
+            st.error("❌ El total del presupuesto debe ser mayor a cero")
+            st.stop()
+
+        with st.spinner("Guardando presupuesto..."):
+            try:
+                presupuesto_id = save_presupuesto_completo(
+                    user_id=user_id,
+                    cliente_id=cliente_id,
+                    lugar_trabajo_id=lugar_trabajo_id,
+                    descripcion=descripcion,
+                    items_data=items_data,
+                    total=total_general
                 )
 
-                # Altura generada
-                alto_usado = pdf.get_y() - y_inicial
+                if presupuesto_id:
+                    st.toast(f"✅ Presupuesto #{presupuesto_id} guardado!", icon="✅")
+                    
+                    pdf_path = generar_pdf(
+                        cliente_nombre=cliente_nombre,    
+                        lugar_cliente=lugar_nombre,       
+                        categorias=items_data,
+                        descripcion=descripcion
+                    )
 
-                # 2️⃣ Mover cursor al lado derecho del multicell
-                pdf.set_xy(x_inicial + ANCHO_INSUMO, y_inicial)
+                    if not pdf_path or not os.path.exists(pdf_path):
+                        st.error("❌ Error generando PDF: archivo no creado.")
+                        st.stop()
 
-                # 3️⃣ Otras celdas con borde normal
-                pdf.cell(25, alto_usado, item.get('unidad', '').title(), border='LBR', align='C')
-                pdf.cell(20, alto_usado, str(int(item.get('cantidad', 0))), border='LBR', align='C')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('precio_unitario', 0)), border='LBR', align='R')
-                pdf.cell(35, alto_usado, formato_moneda(item.get('total', 0)), border='LBR', ln=True, align='R')
+                    with open(pdf_path, "rb") as f:
+                        pdf_bytes = f.read()
+                    
+                    try:
+                        os.unlink(pdf_path)
+                    except Exception:
+                        pass
 
-                total_categoria += item.get("total", 0)
+                    autosave_manager.clear_draft()
 
-            pdf.set_font("helvetica", style='B', size=11)
-            pdf.cell(155, 6, "Total", border=1, align='R')
-            pdf.cell(35, 6, formato_moneda(total_categoria), border=1, ln=True, align='R')
-            pdf.ln(5)
-            total_general += total_categoria
+                    col1, col2, col3 = st.columns(3)
 
-        # Total general
-        if pdf.get_y() > 270:
-            pdf.add_page()
+                    with col1:
+                        mostrar_boton_descarga_pdf(presupuesto_id)
 
-        pdf.set_fill_color(194, 207, 165)
-        ANCHO_TOTAL = 40
-        ALTO_TOTAL = 15
-        margen_derecho = 10
-        x_inicial = pdf.w - ANCHO_TOTAL - margen_derecho
-        y_inicial = pdf.get_y()
+                    with col2:
+                        if st.button("🔄 Crear otro presupuesto", use_container_width=True):
+                            for key in ['categorias', 'descripcion', 'items_data']:
+                                if key in st.session_state:
+                                    del st.session_state[key]
+                            autosave_manager.clear_draft()
+                            st.rerun()
+                    with col3:
+                        st.page_link("pages/2_🕒_historial.py", label="📋 Ver Historial", use_container_width=True)
 
-        pdf.rect(x_inicial, y_inicial, ANCHO_TOTAL, ALTO_TOTAL, style='F')
+                else:
+                    st.error("❌ Error al crear el presupuesto en la base de datos")
 
-        pdf.set_xy(x_inicial + 4, y_inicial + 2)
-        pdf.set_font("helvetica", style='B', size=11)
-        pdf.cell(0, 5, "Total", border=0)
-
-        pdf.set_font("helvetica", style='B', size=14)
-        pdf.set_xy(x_inicial, y_inicial + 6)
-        pdf.cell(ANCHO_TOTAL, 8, formato_moneda(total_general), border=0, align='C')
-
-        # Guardar archivo
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        temp_path = temp_file.name
-        temp_file.close()
-        pdf.output(temp_path)
-        
-        return temp_path
-        
-    except Exception as e:
-        raise Exception(f"Error al generar PDF: {str(e)}")
-
-def mostrar_boton_descarga_pdf(presupuesto_id: int) -> Tuple[Optional[bytes], str, bool]:
-    """
-    Genera y devuelve los bytes de un PDF y el nombre de archivo sugerido
-    """
-    try:
-        # Obtener datos del presupuesto
-        presupuesto = get_presupuesto_detallado(presupuesto_id)
-        if not presupuesto:
-            return None, "", False
-        
-        # Procesar items por categoría
-        categorias = {}
-        for item in presupuesto.get('items', []):
-            cat_nombre = item.get('categoria') or 'Sin categoría'
-            if cat_nombre not in categorias:
-                categorias[cat_nombre] = {'items': [], 'mano_obra': 0}
-            
-            # 🔥 CORREGIR: Incluir mano de obra en la estructura
-            if item.get('nombre') == 'Mano de Obra':
-                categorias[cat_nombre]['mano_obra'] = item.get('precio_unitario', 0)
-            else:
-                categorias[cat_nombre]['items'].append({
-                    'nombre': item.get('nombre', 'Sin nombre'),
-                    'unidad': item.get('unidad', 'Unidad'),
-                    'cantidad': item.get('cantidad', 1),
-                    'precio_unitario': item.get('precio_unitario', 0),
-                    'total': item.get('total', 0),
-                    'descripcion': item.get('notas', '')
-                })
-            
-        # Generar PDF
-        pdf_path = generar_pdf(
-            presupuesto['cliente']['nombre'],
-            categorias,
-            presupuesto['lugar']['nombre'],
-            descripcion=presupuesto.get('descripcion', ''),
-        )
-        
-        # Leer el PDF
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
-        
-        # Eliminar archivo temporal
-        try:
-            os.unlink(pdf_path)
-        except Exception as e:
-            print(f"Error al eliminar archivo temporal: {str(e)}")
-        
-        # Nombre del archivo
-        lugar_nombre = presupuesto['lugar']['nombre'].strip().replace(" ", "_")
-        file_name = f"Presupuesto_{lugar_nombre}.pdf"
-
-        return pdf_bytes, file_name, True
-        
-    except Exception as e:
-        error_msg = f"Error al generar PDF: {str(e)}"
-        print(error_msg)
-        return None, "", False
+            except Exception as e:
+                st.error(f"❌ Error al guardar: {str(e)}")
+                st.exception(e)
