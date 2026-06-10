@@ -1,7 +1,7 @@
 import tempfile
 import os
 import base64
-from turtle import st
+from streamlit import st
 import streamlit
 from datetime import datetime
 from typing import Optional, Tuple, Dict, Any
