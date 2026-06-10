@@ -16,6 +16,8 @@ from utils.components import (
 from utils.db import save_presupuesto_completo
 from utils.autosave import AutoSaveManager, capture_current_state, restore_draft_state
 
+st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
+
 st.markdown("""
 <style>
 .stTextInput, .stNumberInput, .stSelectbox, .stButton, .stTextArea{
@@ -47,7 +49,7 @@ def calcular_total(items_data: Dict[str, Any]) -> float:
         total += safe_numeric_value(data.get('mano_obra', 0))
     return total
 
-st.set_page_config(page_title="GRINO", page_icon="🌱", layout="wide")
+
 
 
 # VERIFICAR LOGIN PRIMERO
