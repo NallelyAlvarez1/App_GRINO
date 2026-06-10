@@ -280,7 +280,7 @@ with tab_presupuestos:
                             st.session_state['presupuesto_cargado_automaticamente'] = False
                             st.switch_page("pages/_✏️ Editar.py")
                     with b2:
-                        success = mostrar_boton_descarga_pdf(p['id'])
+                        mostrar_boton_descarga_pdf(p['id'], key=f"btn_pdf_{p['id']}")
                     with b3:
                         with st.popover("👁️", use_container_width=True):
                             _show_presupuesto_detail(presupuesto_id=p['id'])
